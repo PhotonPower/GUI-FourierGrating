@@ -119,3 +119,27 @@ def test_scan_compare_runs(fake_fg):
     cmp_ = next(m for m in at.multiselect if m.label == "Vergleichen mit")
     cmp_.select(cmp_.options[0]).run()
     assert not at.exception, at.exception
+
+
+def test_nearfield_page(fake_fg):
+    at = _run("editor.py")
+    at.switch_page(str(Path(APP).parent / "pages" / "nearfield.py"))
+    at.run()
+    assert not at.exception, at.exception
+    at.button[0].click().run()  # Block mit Beispielwerten anlegen
+    assert "nearfield" in at.session_state["fg_cfg"]
+    at.button[0].click().run()  # Nahfeld rechnen
+    _wait(at, lambda: at.success)
+    assert not at.exception, at.exception
+    assert at.success and "fertig" in at.success[0].value
+    assert at.session_state["fg_cfg"]["nearfield"]["enabled"] is True
+    assert {s.label for s in at.selectbox} >= {"Schnitt", "Größe", "Anteil"}
+    # Linienschnitt (horizontal, 1D) wählen
+    next(s for s in at.selectbox if s.label == "Schnitt").select("horizontal").run()
+    assert not at.exception, at.exception
+
+
+def test_nearfield_page_without_config(fake_fg):
+    at = AppTest.from_file(str(Path(APP).parent / "pages" / "nearfield.py"), default_timeout=30).run()
+    assert not at.exception, at.exception
+    assert any("Editor" in i.value for i in at.info)

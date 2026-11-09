@@ -7,8 +7,8 @@ AlmaLinux-10-Server mit **NVIDIA RTX 6000 Ada**; bedient wird im Browser.
 Die GUI enthält **keine Physik**: Sie liest und schreibt Konfigurationen im JSON-Format von FourierGrating und ruft
 dessen Python-API (`fouriergrating`) auf. Rechnungen laufen im Hintergrund, die Oberfläche bleibt bedienbar.
 
-> **Status (v0.3.0):** G0–G2 umgesetzt – Gerüst, Seiten *Editor*, *Scan*, *Einzelrechnung*, *Rechnungen*, *System*; Hintergrundrechnung,
-> Tests, CI, Server-Installation (systemd, nginx). Nächster Schritt: G3 Nahfeld
+> **Status (v0.4.0):** G0–G3 umgesetzt – Gerüst, Seiten *Editor*, *Scan*, *Nahfeld*, *Einzelrechnung*, *Rechnungen*, *System*; Hintergrundrechnung,
+> Tests, CI, Server-Installation (systemd, nginx). Nächster Schritt: G4 Rechnungsverwaltung
 > (siehe [`docs/roadmap.md`](docs/roadmap.md)).
 
 ## Dokumentation

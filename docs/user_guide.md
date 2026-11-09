@@ -31,6 +31,19 @@ in der Sitzung und lässt sich auswählen.
 * **Vergleichen mit**: weitere Läufe derselben Sitzung im selben Diagramm (gleiche x-Achse).
 * **efficiencies.csv**: alle Zeilen; bei einem Sweep stehen `sweep_parameter` und `sweep_value` vorn.
 
+## Nahfeld
+
+Feldschnitte für den **ersten Scanpunkt** der Konfiguration aus dem *Editor*.
+
+1. **Nahfeld-Einstellungen**: fehlt der Block `nearfield`, legt ein Knopf ihn mit Beispielwerten an. Danach Lage der
+   Schnitte (y₀ für den horizontalen, z₀ für den vertikalen Schnitt), y-Bereich, Punktzahlen, Perioden, Größen und
+   Rekonstruktion (`fff` hält E-tangential und D-normal an Materialgrenzen stetig, `direct` zeigt Gibbs-Schwingungen).
+2. **Nahfeld rechnen** startet den Job (`enabled` wird für die Rechnung auf `true` gesetzt).
+3. **Schnitt**, **Größe** (|E|², |H|², S_y, Ex…Hz) und **Anteil** (Betrag, Re, Im, Phase; nur bei komplexen Größen)
+   wählen. Karten zeigen die Materialgrenzen als weiße Linien; 1D-Linienschnitte erscheinen als Kurve.
+4. **Alle Schnitte (.zip)** enthält `nearfield_horizontal/` und `nearfield_vertical/` wie `fgsolve`
+   (`<Größe>.npy`, `material.npy`, `meta.json`); `scripts/plot_nearfield.py` aus FourierGrating liest sie.
+
 ## Einzelrechnung
 
 1. **Quelle** wählen: *Beispiel* (Konfigurationen aus `FG_GUI_EXAMPLES_DIR`, z. B. die Referenzfälle von

@@ -19,6 +19,7 @@ nav = st.navigation(
             st.Page(PAGES / "editor.py", title="Editor", icon="✏️", default=True),
             st.Page(PAGES / "single.py", title="Einzelrechnung", icon="▶️"),
             st.Page(PAGES / "scan.py", title="Scan", icon="📈"),
+            st.Page(PAGES / "nearfield.py", title="Nahfeld", icon="🔦"),
         ],
         "Betrieb": [
             st.Page(PAGES / "jobs.py", title="Rechnungen", icon="📋"),

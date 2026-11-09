@@ -78,3 +78,8 @@ def solve(cfg: dict) -> Any:
 def solve_scan(cfg: dict) -> Any:
     """``fouriergrating.solve_scan`` – alle Sweep-Werte und Scanpunkte (``fg.ScanResult``)."""
     return module().solve_scan(cfg)
+
+
+def near_field(cfg: dict) -> Any:
+    """``fouriergrating.near_field`` – Nahfeldschnitte für den ersten Scanpunkt (Block ``nearfield``)."""
+    return module().near_field(cfg)

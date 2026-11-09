@@ -46,6 +46,37 @@ class FakeScan:
         self.points = [FakeResult() for _ in range(4)]
 
 
+def make_fake_nearfield(two_d: bool = False) -> dict:
+    """Zwei Schnitte wie ``fg.near_field``: vertikale Karte (4 × 6) und horizontale Linie bzw. Karte."""
+    rng = np.random.default_rng(1)
+
+    def cut(name, ax2, n2):
+        shape = (n2, 6) if n2 else (6,)
+        E = rng.normal(size=shape) + 1j * rng.normal(size=shape)
+        d = {
+            "cut": name,
+            "axis1_name": "x",
+            "axis2_name": ax2,
+            "axis1_um": np.linspace(0, 1, 6),
+            "axis2_um": np.linspace(-0.2, 0.4, n2) if n2 else np.zeros(0),
+            "lambda_um": 0.6328,
+            "meta": {"axes": {"axis1": {"name": "x"}}, "cut": name},
+        }
+        for q in ("Ex", "Ey", "Ez", "Hx", "Hy", "Hz"):
+            d[q] = E.copy()
+        d["absE2"] = np.abs(E) ** 2
+        d["absH2"] = np.abs(E) ** 2 * 0.5
+        d["Sy"] = rng.normal(size=shape)
+        d["material"] = (np.arange(np.prod(shape)).reshape(shape) % 3 > 0).astype(float)
+        return d
+
+    return {
+        "horizontal": cut("horizontal", "z" if two_d else "y", 4 if two_d else 0),
+        "vertical": cut("vertical", "y", 4),
+        "incidence": {"lambda_um": 0.6328, "phi_deg": 10.0, "psi_deg": 0.0, "delta_deg": 90.0},
+    }
+
+
 def make_fake_fg(version: str = "0.18.0") -> types.ModuleType:
     fg = types.ModuleType("fouriergrating")
     fg.__version__ = version
@@ -54,6 +85,7 @@ def make_fake_fg(version: str = "0.18.0") -> types.ModuleType:
     fg.get_backend = lambda: {"preference": "auto", "threshold": 1000}
     fg.solve = lambda cfg: FakeResult()
     fg.solve_scan = lambda cfg: FakeScan()
+    fg.near_field = lambda cfg: make_fake_nearfield(cfg.get("dimension") == "2D")
     cad = types.ModuleType("fouriergrating.cad")
     cad.available = lambda: False
     fg.cad = cad

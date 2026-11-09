@@ -2,6 +2,18 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.4.0] – 2026-11-09
+
+### Hinzugefügt (G3)
+- Seite *Nahfeld*: Block `nearfield` der Konfiguration bearbeiten (Schnittlagen, y-Bereich, Punktzahlen, Perioden,
+  Größen, Rekonstruktion; Block mit Beispielwerten anlegbar), `fouriergrating.near_field` als Hintergrundrechnung.
+- Darstellung: Karte (pcolormesh, Materialgrenzen als Kontur) oder Linie; Größen |E|², |H|², S_y und die Komponenten
+  Ex…Hz mit Betrag, Real-/Imaginärteil oder Phase. Felder und Achsen werden unverändert durchgereicht.
+- Export: ZIP mit `nearfield_<schnitt>/{*.npy, material.npy, meta.json}` wie `fgsolve` (liest `plot_nearfield.py`),
+  Bild als PNG.
+- Modul `fg_gui.nearfield` (ohne Streamlit) und `fg_gui.widgets` (Eingabefelder, vom Editor übernommen).
+- Neue Abhängigkeit: `matplotlib`.
+
 ## [0.3.0] – 2026-11-09
 
 ### Hinzugefügt (G2)

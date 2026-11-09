@@ -63,3 +63,62 @@ def test_sweep_example():
     frame = scans.scan_frame(scan)
     assert "sweep_value" in scans.varying_axes(frame)
     assert scans.csv_frame(frame, scan.sweep_parameter).columns[0] == "sweep_parameter"
+
+
+@pytest.mark.solver
+@pytest.mark.parametrize("name", ["nearfield_lamellar_1d.json", "nearfield_pillars_2d.json"])
+def test_nearfield_examples(name):
+    import io
+    import zipfile
+    from pathlib import Path
+
+    import numpy as np
+
+    from fg_gui import config_io
+    from fg_gui import nearfield as nfm
+
+    path = Path(__file__).resolve().parents[2] / "FourierGrating" / "examples" / name
+    if not path.is_file():
+        pytest.skip("Beispiel nicht vorhanden")
+    nf = solver.near_field(config_io.parse(path.read_bytes()))
+    cuts = nfm.cut_names(nf)
+    assert cuts == ["horizontal", "vertical"]
+    for c in cuts:
+        cut = nf[c]
+        q = nfm.quantities(cut)
+        assert "absE2" in q and "Ex" in q
+        # Felder unverändert: |E|² aus der Auswahl ist exakt das Array von FourierGrating
+        assert nfm.select(cut, "absE2") is cut["absE2"]
+        assert nfm.png_bytes(nfm.figure(cut, "absE2")).startswith(b"\x89PNG")
+    z = zipfile.ZipFile(io.BytesIO(nfm.export_zip(nf)))
+    assert np.array_equal(np.load(io.BytesIO(z.read("nearfield_vertical/absE2.npy"))), nf["vertical"]["absE2"])
+
+
+@pytest.mark.solver
+def test_export_readable_by_plot_nearfield(tmp_path):
+    """Der ZIP-Export lässt sich mit scripts/plot_nearfield.py (FourierGrating) lesen und zeichnen."""
+    import importlib.util
+    import io
+    import zipfile
+    from pathlib import Path
+
+    import numpy as np
+
+    from fg_gui import config_io
+    from fg_gui import nearfield as nfm
+
+    root = Path(__file__).resolve().parents[2] / "FourierGrating"
+    script, example = root / "scripts" / "plot_nearfield.py", root / "examples" / "nearfield_lamellar_1d.json"
+    if not (script.is_file() and example.is_file()):
+        pytest.skip("FourierGrating-Quellen nicht vorhanden")
+    spec = importlib.util.spec_from_file_location("plot_nearfield", script)
+    pn = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pn)
+    nf = solver.near_field(config_io.parse(example.read_bytes()))
+    zipfile.ZipFile(io.BytesIO(nfm.export_zip(nf))).extractall(tmp_path)
+    meta, data = pn.load_cut(str(tmp_path / "nearfield_vertical"))
+    assert np.array_equal(data["absE2"], nf["vertical"]["absE2"])
+    assert np.array_equal(data["material"], nf["vertical"]["material"])
+    assert np.allclose(meta["axes"]["axis1"]["values_um"], nf["vertical"]["axis1_um"])
+    for part in ("abs", "re"):
+        assert np.array_equal(pn.select_part(data["Ex"], part), nfm.select(nf["vertical"], "Ex", part))

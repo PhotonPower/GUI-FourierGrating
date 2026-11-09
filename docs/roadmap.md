@@ -19,7 +19,7 @@ Reihenfolge wie aufgeführt (AGENTS.md).
   - `solve_scan`, Spektren/Winkelgänge je Ordnung, Sweep-Kurven, Mehrfachauswahl von Ordnungen und Polarisation
   - Export wie `efficiencies.csv`; Vergleich mehrerer Rechnungen in einem Diagramm
   - Abnahme: Spalten identisch zu `ScanResult.columns`; Diagrammdaten-Test
-- [ ] **G3** Nahfeld
+- [x] **G3** Nahfeld
   - `near_field`: horizontale und vertikale Schnitte, Größen (|E|², Komponenten, Poynting), Materialgrenzen als Kontur
   - Export `.npy`/`meta.json` wie `fgsolve`
   - Abnahme: Achsen und Felder unverändert durchgereicht (Test mit Ersatzdaten), Vergleich mit `plot_nearfield.py`
