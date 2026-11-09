@@ -1,5 +1,7 @@
 """Umwandlungen des Konfigurationseditors (ohne Streamlit)."""
 
+import json
+
 import pytest
 
 from fg_gui import config_form as cf
@@ -82,7 +84,7 @@ def test_new_layers_and_move():
     for kind in cf.FORM_LAYER_TYPES:
         assert cf.new_layer(kind, ["air", "si"])["type"] == kind
     with pytest.raises(cf.FormError):
-        cf.new_layer("polygon2d", [])
+        cf.new_layer("cad", [])
     items = [1, 2, 3]
     cf.move(items, 0, -1)
     cf.move(items, 0, 1)
@@ -97,3 +99,74 @@ def test_locate_error():
     assert cf.locate_error('dimension must be "1D" or "2D"', cfg) == ("basis", None)
     assert cf.locate_error("truncation orders must be non-negative", cfg) == ("basis", None)
     assert cf.locate_error("something odd", cfg) == (None, None)
+
+
+# ---------------------------------------------------------------- 2D-Schichten (Einschlüsse, Regionen)
+def test_layer_types_by_dimension():
+    assert cf.layer_types("1D") == ["homogeneous", "lamellar1d", "profile1d"]
+    assert "polygon2d" in cf.layer_types("2D") and "homogeneous" in cf.layer_types("2D")
+    assert cf.layer_types("1D", "polygon2d")[-1] == "polygon2d"  # vorhandene Schicht bleibt wählbar
+
+
+def test_new_2d_layers():
+    for kind in cf.LAYER_TYPES_2D:
+        layer = cf.new_layer(kind, ["air", "si"], 0.6, 0.4)
+        assert layer["type"] == kind
+    assert cf.new_layer("polygon2d", ["air", "si"], 0.6, 0.4)["inclusions"][0]["rectangle_um"]["center"] == [0.3, 0.2]
+
+
+def _rows(layer, kind):
+    return [cf.shape_row(e, kind) for e in layer[kind]]
+
+
+def test_shapes_roundtrip_unchanged():
+    layer = {
+        "inclusions": [
+            {"material": "si", "rectangle_um": {"center": [0, 0.3], "size": [0.3, 1]}},
+            {"material": "air", "vertices_um": [[0, 0], [0.1, 0], [0.1, 0.1]], "extra": 1},
+        ]
+    }
+    orig = json.loads(json.dumps(layer))
+    cf.shapes_apply(layer, "inclusions", _rows(layer, "inclusions"))
+    assert layer == orig
+    # NaN aus der Tabelle (leere Zellen) ändert nichts
+    rows = _rows(layer, "inclusions")
+    rows[1]["x"] = float("nan")
+    cf.shapes_apply(layer, "inclusions", rows)
+    assert layer == orig
+
+
+def test_regions_roundtrip_and_edit_keeps_holes():
+    nurbs = {"degree": 2, "knots": [0, 0, 0, 1, 1, 1], "points_um": [[0, 0], [1, 0], [1, 1]], "weights": [1, 1, 1]}
+    layer = {
+        "regions": [
+            {"material": "si", "circle": {"center_um": [0.25, 0.25], "radius_um": 0.1},
+             "holes": [{"circle": {"center_um": [0.25, 0.25], "radius_um": 0.02}}]},
+            {"material": "si", "ellipse": {"center_um": [0.6, 0.6], "radii_um": [0.12, 0.06], "angle_deg": 30}},
+            {"material": "sio2", "polygon_um": [[0, 0], [0.1, 0], [0.1, 0.1]]},
+            {"material": "si", "nurbs": nurbs},
+        ]
+    }  # fmt: skip
+    orig = json.loads(json.dumps(layer))
+    cf.shapes_apply(layer, "regions", _rows(layer, "regions"))
+    assert layer == orig
+    rows = _rows(layer, "regions")
+    rows[0]["a"] = 0.15
+    rows[1]["Winkel"] = 45
+    cf.shapes_apply(layer, "regions", rows)
+    assert layer["regions"][0]["circle"]["radius_um"] == 0.15 and "holes" in layer["regions"][0]
+    assert layer["regions"][1]["ellipse"]["angle_deg"] == 45
+    assert layer["regions"][3]["nurbs"] == nurbs
+
+
+def test_shapes_add_change_form_and_bad_points():
+    layer = {"inclusions": [{"material": "si", "rectangle_um": {"center": [0, 0], "size": [1, 1]}}]}
+    rows = _rows(layer, "inclusions")
+    rows.append({"Material": "air", "Form": "Rechteck", "x": 0.5, "z": 0.5, "a": 0.2, "b": 0.1, "Winkel": None,
+                 "Eckpunkte": ""})  # fmt: skip
+    rows[0]["Form"], rows[0]["Eckpunkte"] = "Polygon", "0 0; 1 0; 1 1"
+    cf.shapes_apply(layer, "inclusions", rows)
+    assert layer["inclusions"][0] == {"material": "si", "vertices_um": [[0, 0], [1, 0], [1, 1]]}
+    assert layer["inclusions"][1]["rectangle_um"] == {"center": [0.5, 0.5], "size": [0.2, 0.1]}
+    with pytest.raises(cf.FormError):
+        cf.parse_points("0 0; 1")

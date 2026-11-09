@@ -16,7 +16,7 @@ from fg_gui.widgets import choice, complex_input, integer, number, show_estimate
 st.title("Editor")
 st.caption(
     "Konfiguration für FourierGrating (docs/config_format.md) per Formular. Nicht angefasste Schlüssel bleiben "
-    "unverändert; Schichttypen ohne Formular (2D, CAD) bearbeitest du als JSON. Einheiten: µm und Grad."
+    "unverändert; Schichttypen ohne Formular (CAD, NURBS-Regionen) bearbeitest du als JSON. Einheiten: µm und Grad."
 )
 
 
@@ -209,11 +209,10 @@ with tab_layers:
                 _bump()
                 st.rerun()
             if ltype in cf.FORM_LAYER_TYPES:
-                new_type = st.selectbox(
-                    "Typ", cf.FORM_LAYER_TYPES, index=cf.FORM_LAYER_TYPES.index(ltype), key=_k("lt", i)
-                )
+                types = cf.layer_types(cfg.get("dimension"), ltype)
+                new_type = st.selectbox("Typ", types, index=types.index(ltype), key=_k("lt", i))
                 if new_type != ltype:
-                    layers[i] = cf.new_layer(new_type, mat_names, per.get("x", 1.0))
+                    layers[i] = cf.new_layer(new_type, mat_names, per.get("x", 1.0), per.get("z", 1.0))
                     _bump()
                     st.rerun()
                 if ltype == "homogeneous":
@@ -234,6 +233,58 @@ with tab_layers:
                         },
                     )
                     cf.lamellae_apply(layer, edited.to_dict("records"))
+                elif ltype in ("polygon2d", "contour2d"):
+                    kind, forms = (
+                        ("inclusions", cf.INCLUSION_FORMS) if ltype == "polygon2d" else ("regions", cf.REGION_FORMS)
+                    )
+                    c = st.columns(3)
+                    number(c[0], "Dicke (µm)", layer, "thickness_um", 0.1, min_value=0.0)
+                    choice(c[1], "Hintergrund", layer, "background", mat_names)
+                    choice(c[2], "Faktorisierung", layer, "factorization", cf.POLYGON_FACTORIZATIONS, "auto")
+                    st.markdown("**Einschlüsse**" if kind == "inclusions" else "**Regionen**")
+                    st.caption(
+                        "x, z = Mitte (µm). a, b: Rechteck = Größe x, z; Kreis = Radius (a); Ellipse = Halbachsen, "
+                        "Winkel in °. Polygon: Eckpunkte `x z; x z; …`. NURBS und Löcher nur im JSON der Schicht."
+                    )
+                    entries = layer.get(kind) if isinstance(layer.get(kind), list) else []
+                    df = pd.DataFrame([cf.shape_row(e, kind) for e in entries], columns=cf.SHAPE_COLUMNS)
+                    edited = st.data_editor(
+                        df,
+                        num_rows="dynamic",
+                        hide_index=True,
+                        key=_k("shp", i),
+                        column_config={
+                            "Material": st.column_config.SelectboxColumn(options=mat_names),
+                            "Form": st.column_config.SelectboxColumn(options=list(forms)),
+                            **{
+                                k: st.column_config.NumberColumn(format="%.10g") for k in ("x", "z", "a", "b", "Winkel")
+                            },
+                            "Eckpunkte": st.column_config.TextColumn(width="large"),
+                        },
+                    )
+                    try:
+                        cf.shapes_apply(layer, kind, edited.to_dict("records"))
+                    except cf.FormError as e:
+                        st.error(str(e))
+                    nf = layer.get("normal_field") if isinstance(layer.get("normal_field"), dict) else {}
+                    c = st.columns(2)
+                    integer(c[0], "Normalenfeld: Gitter", nf, "grid", 512)
+                    number(c[1], "Normalenfeld: σ", nf, "sigma", 3.0, min_value=0.0)
+                    if nf and layer.get("normal_field") is not nf:
+                        layer["normal_field"] = nf
+                elif ltype == "profile2d":
+                    choice(st, "Form", layer, "shape", cf.PROFILE2D_SHAPES, "egg_crate")
+                    c = st.columns(3)
+                    number(c[0], "Tiefe (µm)", layer, "depth_um", 0.1, min_value=0.0)
+                    choice(c[1], "Material unten", layer, "below", mat_names)
+                    choice(c[2], "Material oben", layer, "above", mat_names)
+                    c = st.columns(2)
+                    number(c[0], "x0 (µm)", layer, "x0_um", 0.0)
+                    number(c[1], "z0 (µm)", layer, "z0_um", 0.0)
+                    c = st.columns(3)
+                    integer(c[0], "Scheiben (0 = automatisch)", layer, "slices", 0)
+                    integer(c[1], "z-Stützstellen (0 = automatisch)", layer, "z_samples", 0)
+                    choice(c[2], "Faktorisierung", layer, "factorization", cf.PROFILE_FACTORIZATIONS, "auto")
                 else:  # profile1d
                     choice(st, "Form", layer, "shape", cf.PROFILE_SHAPES, "sinus")
                     shape = layer.get("shape", "sinus")
@@ -262,9 +313,11 @@ with tab_layers:
                     except config_io.ConfigError as e:
                         st.error(str(e))
     c = st.columns([2, 1])
-    add_type = c[0].selectbox("Neue Schicht", cf.FORM_LAYER_TYPES, key=_k("addtype"), label_visibility="collapsed")
+    add_type = c[0].selectbox(
+        "Neue Schicht", cf.layer_types(cfg.get("dimension")), key=_k("addtype"), label_visibility="collapsed"
+    )
     if c[1].button("Schicht hinzufügen"):
-        layers.append(cf.new_layer(add_type, mat_names, per.get("x", 1.0)))
+        layers.append(cf.new_layer(add_type, mat_names, per.get("x", 1.0), per.get("z", 1.0)))
         cfg["layers"] = layers
         _bump()
         st.rerun()

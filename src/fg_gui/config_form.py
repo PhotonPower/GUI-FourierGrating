@@ -11,7 +11,9 @@ import re
 from typing import Any
 
 #: Schichttypen, für die es ein Formular gibt; alle anderen werden als JSON bearbeitet
-FORM_LAYER_TYPES = ("homogeneous", "lamellar1d", "profile1d")
+LAYER_TYPES_1D = ("homogeneous", "lamellar1d", "profile1d")
+LAYER_TYPES_2D = ("polygon2d", "contour2d", "profile2d")  # nur bei "dimension": "2D"
+FORM_LAYER_TYPES = LAYER_TYPES_1D + LAYER_TYPES_2D
 MATERIAL_KINDS = {
     "n": "Brechzahl n",
     "eps": "Permittivität ε",
@@ -19,6 +21,8 @@ MATERIAL_KINDS = {
     "eps_tensor": "Tensor ε (JSON)",
 }
 PROFILE_SHAPES = ("sinus", "triangle", "points")
+PROFILE2D_SHAPES = ("egg_crate", "sinus_x")
+POLYGON_FACTORIZATIONS = ("auto", "FFF_sym", "FFF_iso", "FFF_B", "laurent")
 PROFILE_FACTORIZATIONS = ("auto", "laurent", "li_lamellar", "FFF_iso", "FFF_sym", "FFF_rig", "FFF_A", "FFF_B")
 
 
@@ -180,9 +184,39 @@ def default_config() -> dict:
     }
 
 
-def new_layer(kind: str, materials: list[str], period_x: float = 1.0) -> dict:
+def layer_types(dimension: Any, current: str | None = None) -> list[str]:
+    """Schichttypen zur Auswahl: in 1D die 1D-Typen, in 2D alle (z-invariante 1D-Schichten sind dort erlaubt)."""
+    types = list(FORM_LAYER_TYPES if dimension == "2D" else LAYER_TYPES_1D)
+    if current in FORM_LAYER_TYPES and current not in types:
+        types.append(current)
+    return types
+
+
+def new_layer(kind: str, materials: list[str], period_x: float = 1.0, period_z: float = 1.0) -> dict:
     first = materials[0] if materials else ""
     second = materials[1] if len(materials) > 1 else first
+    if kind == "polygon2d":
+        return {
+            "type": "polygon2d",
+            "thickness_um": 0.1,
+            "background": first,
+            "inclusions": [
+                {"material": second, "rectangle_um": {"center": [period_x / 2, period_z / 2],
+                                                      "size": [period_x / 2, period_z / 2]}}
+            ],
+        }  # fmt: skip
+    if kind == "contour2d":
+        return {
+            "type": "contour2d",
+            "thickness_um": 0.1,
+            "background": first,
+            "regions": [
+                {"material": second, "circle": {"center_um": [period_x / 2, period_z / 2],
+                                                "radius_um": min(period_x, period_z) / 4}}
+            ],
+        }  # fmt: skip
+    if kind == "profile2d":
+        return {"type": "profile2d", "shape": "egg_crate", "depth_um": 0.1, "below": first, "above": second}
     if kind == "homogeneous":
         return {"type": "homogeneous", "thickness_um": 0.1, "material": first}
     if kind == "lamellar1d":
@@ -232,6 +266,112 @@ def lamellae_apply(layer: dict, rows: list[dict]) -> None:
     bp = [old[i] if i < len(old) and old[i] == v else v for i, v in enumerate(bp)]
     assign(layer, "breakpoints_um", bp)
     assign(layer, "materials", mats)
+
+
+# ---------------------------------------------------------------- 2D-Einschlüsse und -Regionen als Tabelle
+#: Spalten: Material, Form, Mitte x/z, a/b (Rechteck: Größe; Kreis: Radius; Ellipse: Halbachsen), Winkel, Eckpunkte
+SHAPE_COLUMNS = ["Material", "Form", "x", "z", "a", "b", "Winkel", "Eckpunkte"]
+INCLUSION_FORMS = ("Rechteck", "Polygon")
+REGION_FORMS = ("Kreis", "Ellipse", "Polygon", "NURBS")
+#: (Schlüssel in der Konfiguration, Formname) je Liste
+_GEOMETRY = {
+    "inclusions": {"rectangle_um": "Rechteck", "vertices_um": "Polygon"},
+    "regions": {"circle": "Kreis", "ellipse": "Ellipse", "polygon_um": "Polygon", "nurbs": "NURBS"},
+}
+
+
+def _clean(v: Any) -> Any:
+    return None if v is None or (isinstance(v, float) and v != v) else v
+
+
+def format_points(points: Any) -> str:
+    if not isinstance(points, list):
+        return ""
+    return "; ".join(" ".join(format_number(c) for c in p) for p in points if isinstance(p, (list, tuple)))
+
+
+def parse_points(text: str) -> list[list[int | float]]:
+    """``"0 0; 0.1 0; 0.1 0.1"`` → ``[[0, 0], [0.1, 0], [0.1, 0.1]]`` (Eckpunkte x z, getrennt durch ``;``)."""
+    pts = []
+    for part in text.split(";"):
+        if not part.strip():
+            continue
+        xy = parse_list(part)
+        if len(xy) != 2:
+            raise FormError(f"Eckpunkt „{part.strip()}“: zwei Zahlen x z erwartet")
+        pts.append(xy)
+    return pts
+
+
+def shape_row(entry: Any, kind: str) -> dict:
+    """Eine Einschluss-/Regionsangabe der Konfiguration als Tabellenzeile (``kind``: ``inclusions`` | ``regions``)."""
+    row: dict = dict.fromkeys(SHAPE_COLUMNS)
+    row["Eckpunkte"] = ""
+    if not isinstance(entry, dict):
+        return row
+    row["Material"] = entry.get("material")
+    for key, form in _GEOMETRY[kind].items():
+        if key not in entry:
+            continue
+        g = entry[key]
+        row["Form"] = form
+        if form == "Rechteck" and isinstance(g, dict):
+            (row["x"], row["z"]), (row["a"], row["b"]) = g.get("center", [None, None]), g.get("size", [None, None])
+        elif form in ("Kreis", "Ellipse") and isinstance(g, dict):
+            row["x"], row["z"] = g.get("center_um", [None, None])
+            if form == "Kreis":
+                row["a"] = g.get("radius_um")
+            else:
+                row["a"], row["b"] = g.get("radii_um", [None, None])
+                row["Winkel"] = g.get("angle_deg")
+        elif form == "Polygon":
+            row["Eckpunkte"] = format_points(g)
+        break
+    return row
+
+
+def shape_entry(row: dict, orig: Any, kind: str) -> dict:
+    """Tabellenzeile → Konfigurationseintrag. Von ``orig`` bleiben nicht angezeigte Schlüssel (``holes`` …) erhalten."""
+    form = row["Form"]
+    same_form = isinstance(orig, dict) and shape_row(orig, kind)["Form"] == form
+    entry = dict(orig) if same_form else {}
+    entry["material"] = row["Material"]
+    num = lambda k: 0.0 if _clean(row.get(k)) is None else float(row[k])  # noqa: E731
+    old_geo = (orig or {}) if same_form else {}
+    if form == "Rechteck":
+        old = old_geo.get("rectangle_um", {})
+        entry["rectangle_um"] = {**old, "center": [num("x"), num("z")], "size": [num("a"), num("b")]}
+    elif form == "Kreis":
+        old = old_geo.get("circle", {})
+        entry["circle"] = {**old, "center_um": [num("x"), num("z")], "radius_um": num("a")}
+    elif form == "Ellipse":
+        old = old_geo.get("ellipse", {})
+        g = {**old, "center_um": [num("x"), num("z")], "radii_um": [num("a"), num("b")]}
+        if _clean(row.get("Winkel")) is not None or "angle_deg" in old:
+            g["angle_deg"] = num("Winkel")
+        entry["ellipse"] = g
+    elif form == "Polygon":
+        key = "vertices_um" if kind == "inclusions" else "polygon_um"
+        entry[key] = parse_points(row.get("Eckpunkte") or "")
+    # NURBS: Geometrie bleibt unverändert (nur als JSON bearbeitbar)
+    return entry
+
+
+def shapes_apply(layer: dict, kind: str, rows: list[dict]) -> None:
+    """Schreibt die Tabelle zurück. Unveränderte Zeilen behalten ihren Originaleintrag (Zahlenform, Zusatzschlüssel)."""
+    old = layer.get(kind) if isinstance(layer.get(kind), list) else []
+    new = []
+    for i, r in enumerate(rows):
+        r = {k: _clean(r.get(k)) for k in SHAPE_COLUMNS}
+        if not r["Material"] or not r["Form"] or r["Form"] == "?":
+            continue
+        r["Eckpunkte"] = r["Eckpunkte"] or ""
+        orig = old[i] if i < len(old) else None
+        if orig is not None and shape_row(orig, kind) == r:
+            new.append(orig)
+        else:
+            new.append(shape_entry(r, orig, kind))
+    assign(layer, kind, new, [])
 
 
 # ---------------------------------------------------------------- Fehler von FourierGrating → Abschnitt

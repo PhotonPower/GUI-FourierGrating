@@ -2,6 +2,17 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.8.1] – 2026-11-09
+
+### Hinzugefügt
+- Editor, Reiter *Schichten*: bei `"dimension": "2D"` Formulare für `polygon2d` (Einschlüsse als Tabelle: Rechteck
+  oder Polygon), `contour2d` (Regionen: Kreis, Ellipse, Polygon; NURBS und Löcher bleiben erhalten und sind im JSON
+  der Schicht bearbeitbar), `profile2d` (egg_crate, sinus_x), jeweils mit Faktorisierung und Normalenfeld. In 1D
+  werden weiter nur die 1D-Typen angeboten. Unveränderte Einträge bleiben im Roundtrip bitgleich.
+
+### Geändert
+- Aufräumen nach 90 Tagen ist in `scripts/run_dev.sh` und in `deploy/fg-gui.env.example` voreingestellt.
+
 ## [0.8.0] – 2026-11-09
 
 ### Hinzugefügt (G7)

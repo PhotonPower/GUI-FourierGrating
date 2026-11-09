@@ -297,3 +297,22 @@ def test_optimize_page_without_config(fake_fg):
     at = AppTest.from_file(str(Path(APP).parent / "pages" / "optimize.py"), default_timeout=30).run()
     assert not at.exception, at.exception
     assert any("Editor" in i.value for i in at.info)
+
+
+def test_editor_2d_layers_have_forms(fake_fg, tmp_path, monkeypatch):
+    cfg = {
+        "dimension": "2D", "solver": "rcwa", "truncation": {"Nx": 3, "Nz": 3}, "period_um": {"x": 0.6, "z": 0.6},
+        "incidence": {"lambda_um": 0.63, "phi_deg": 0, "psi_deg": 0, "delta_deg": 0},
+        "materials": {"air": {"n": 1.0}, "si": {"n": 3.9}}, "superstrate": "air", "substrate": "si",
+        "layers": [
+            {"type": "polygon2d", "thickness_um": 0.15, "background": "air",
+             "inclusions": [{"material": "si", "rectangle_um": {"center": [0.3, 0.3], "size": [0.3, 0.3]}}]},
+            {"type": "contour2d", "thickness_um": 0.1, "background": "air",
+             "regions": [{"material": "si", "circle": {"center_um": [0.3, 0.3], "radius_um": 0.1}}]},
+            {"type": "profile2d", "shape": "egg_crate", "depth_um": 0.1, "below": "si", "above": "air"},
+        ],
+    }  # fmt: skip
+    (tmp_path / "p2d.json").write_text(json.dumps(cfg))
+    at = _editor(monkeypatch, tmp_path, "p2d.json")
+    assert at.session_state["fg_cfg"] == cfg
+    assert not any("kein Formular" in i.value for i in at.info)
