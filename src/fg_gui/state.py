@@ -5,6 +5,8 @@ Schlüssel in ``st.session_state`` beginnen mit ``fg_`` (AGENTS.md, Abschnitt 4)
 
 from __future__ import annotations
 
+import json
+import re
 import threading
 import time
 import uuid
@@ -44,7 +46,9 @@ def sweep_now(jm: JobManager | None = None) -> housekeeping.Report:
         _last_sweep = time.time()
         if not (s.retention_days or s.max_runs):
             return housekeeping.Report()
-        return housekeeping.sweep(jm or job_manager(), uploads_dir(), s.retention_days, s.max_runs)
+        return housekeeping.sweep(
+            jm or job_manager(), uploads_dir(), s.retention_days, s.max_runs, sessions=drafts_dir()
+        )
 
 
 def sweep_if_due() -> None:
@@ -57,11 +61,66 @@ def solver_info() -> solver.SolverInfo:
     return solver.info()
 
 
+SESSION_RE = re.compile(r"^[0-9a-f]{8,32}$")
+
+
 def session_id() -> str:
-    """Kennung der Browsersitzung (Zuordnung der Jobs; keine Anmeldung)."""
+    """Kennung der Arbeitssitzung; steht als ``?s=…`` in der Adresszeile.
+
+    Wer die Adresse (Lesezeichen, anderes Gerät, nach Neustart) wieder öffnet, arbeitet an denselben Rechnungen und
+    derselben Konfiguration weiter. Wer die Kennung kennt, sieht diese Rechnungen: sie ist ein Zugangsschlüssel.
+    """
     if "fg_session" not in st.session_state:
-        st.session_state["fg_session"] = uuid.uuid4().hex[:8]
-    return st.session_state["fg_session"]
+        wanted = st.query_params.get("s", "")
+        st.session_state["fg_session"] = wanted if SESSION_RE.match(wanted) else uuid.uuid4().hex[:12]
+    sid = st.session_state["fg_session"]
+    if st.query_params.get("s") != sid:  # auch nach einem Seitenwechsel wieder eintragen
+        st.query_params["s"] = sid
+    return sid
+
+
+def drafts_dir():
+    return settings().data_dir / "sessions"
+
+
+def save_draft() -> None:
+    """Merkt sich die Konfiguration im Editor je Sitzung (nur bei Änderung), damit sie nach Neustart wieder da ist."""
+    cfg = st.session_state.get("fg_cfg")
+    if not isinstance(cfg, dict) or "fg_session" not in st.session_state:
+        return
+    data = {
+        "config": cfg,
+        "name": st.session_state.get("fg_cfg_name", ""),
+        "label": st.session_state.get("fg_cfg_label", ""),
+    }
+    text = json.dumps(data, ensure_ascii=False, default=str)
+    if st.session_state.get("fg_draft_saved") == text:
+        return
+    try:
+        from .store import _write_json
+
+        drafts_dir().mkdir(parents=True, exist_ok=True)
+        _write_json(drafts_dir() / f"{st.session_state['fg_session']}.json", data)
+        st.session_state["fg_draft_saved"] = text
+    except OSError:
+        pass  # Zugabe: eine volle Platte soll die Bedienung nicht stören
+
+
+def restore_draft() -> None:
+    """Lädt die gemerkte Konfiguration der Sitzung, falls im Editor noch keine liegt."""
+    if "fg_cfg" in st.session_state:
+        return
+    f = drafts_dir() / f"{session_id()}.json"
+    try:
+        data = json.loads(f.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if isinstance(data, dict) and isinstance(data.get("config"), dict):
+        st.session_state["fg_cfg"] = data["config"]
+        st.session_state["fg_cfg_name"] = data.get("name") or "wiederhergestellt"
+        if data.get("label"):
+            st.session_state["fg_cfg_label"] = data["label"]
+        st.session_state["fg_gen"] = st.session_state.get("fg_gen", 0) + 1
 
 
 def current_user() -> str:

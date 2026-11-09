@@ -131,3 +131,14 @@ def test_health_run_exit_code(tmp_path, monkeypatch, capsys, fake_fg):
         health.main(["--url", "http://127.0.0.1:9"])
     except SystemExit as e:
         assert e.code == 1
+
+
+def test_purge_drafts(tmp_path):
+    d = tmp_path / "sessions"
+    d.mkdir()
+    old, new = d / "a.json", d / "b.json"
+    old.write_text("{}")
+    new.write_text("{}")
+    os.utime(old, (time.time() - 40 * DAY,) * 2)
+    assert housekeeping.purge_drafts(d, 30) == 1 and not old.exists() and new.exists()
+    assert housekeeping.purge_drafts(d, 0) == 0

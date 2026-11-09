@@ -111,6 +111,13 @@ Vor dem Rechnen zeigen Editor und Scan eine **Abschätzung** (Zahl der Rechnunge
 Der Speicher ist ein Faustwert (12 komplexe n×n-Matrizen je gleichzeitigem Scanpunkt) und warnt ab 70 % des
 Arbeitsspeichers; er kann bei RK-Löser, vielen Scheiben oder GPU weit danebenliegen.
 
+## Sitzung und Adresse
+
+Die Adresszeile enthält deine Sitzungskennung (`?s=…`). **Adresse als Lesezeichen merken:** Mit ihr kommst du – auch
+von einem anderen Rechner oder nach einem Neustart des Servers – zu deinen Rechnungen und zur zuletzt bearbeiteten
+Konfiguration im Editor zurück. Wer die Adresse kennt, sieht deine Rechnungen; gib sie nur weiter, wenn das gewollt ist.
+Ohne Kennung in der Adresse beginnt eine neue Sitzung.
+
 ## System
 
 Version und Kern von FourierGrating (`cpu` oder `cuda12`), ob CUDA nutzbar und der CAD-Slicer eingebaut ist,

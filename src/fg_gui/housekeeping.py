@@ -73,7 +73,32 @@ def purge_uploads(uploads: Path, jm: JobManager, retention_days: int, now: float
     return rep
 
 
-def sweep(jm: JobManager, uploads: Path, retention_days: int, max_runs: int, now: float | None = None) -> Report:
+def purge_drafts(sessions: Path, retention_days: int, now: float | None = None) -> int:
+    """Löscht gemerkte Editor-Konfigurationen (``sessions/<Kennung>.json``), die seit ``retention_days`` ruhen."""
+    if retention_days <= 0 or not sessions.is_dir():
+        return 0
+    now = time.time() if now is None else now
+    n = 0
+    for f in sessions.glob("*.json"):
+        try:
+            if f.is_file() and not f.is_symlink() and now - f.stat().st_mtime > retention_days * DAY:
+                f.unlink()
+                n += 1
+        except OSError:
+            continue
+    return n
+
+
+def sweep(
+    jm: JobManager,
+    uploads: Path,
+    retention_days: int,
+    max_runs: int,
+    now: float | None = None,
+    sessions: Path | None = None,
+) -> Report:
     a = purge_runs(jm, retention_days, max_runs, now)
     b = purge_uploads(uploads, jm, retention_days, now)
+    if sessions is not None:
+        purge_drafts(sessions, retention_days, now)
     return Report(a.runs, b.uploads, a.freed_bytes + b.freed_bytes)

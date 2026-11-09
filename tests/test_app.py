@@ -316,3 +316,63 @@ def test_editor_2d_layers_have_forms(fake_fg, tmp_path, monkeypatch):
     at = _editor(monkeypatch, tmp_path, "p2d.json")
     assert at.session_state["fg_cfg"] == cfg
     assert not any("kein Formular" in i.value for i in at.info)
+
+
+# ---------------------------------------------------------------- Sitzungskennung in der Adresszeile
+def _save_script():
+    import streamlit as st
+
+    from fg_gui import state
+
+    state.session_id()
+    st.session_state["fg_cfg"] = {"incidence": {"lambda_um": 0.777}}
+    st.session_state["fg_cfg_name"] = "datei:x"
+    state.save_draft()
+
+
+def _restore_script():
+    from fg_gui import state
+
+    state.restore_draft()
+
+
+def test_session_id_in_url_and_resume(fake_fg):
+    at = AppTest.from_function(_save_script, default_timeout=30).run()
+    assert not at.exception, at.exception
+    sid = at.query_params["s"][0] if isinstance(at.query_params["s"], list) else at.query_params["s"]
+    assert len(sid) == 12 and at.session_state["fg_session"] == sid
+
+    # neue Browsersitzung (anderes Gerät/Neustart) mit derselben Adresse arbeitet weiter
+    again = AppTest.from_function(_restore_script, default_timeout=30)
+    again.query_params["s"] = sid
+    again.run()
+    assert not again.exception, again.exception
+    assert again.session_state["fg_session"] == sid
+    assert again.session_state["fg_cfg"]["incidence"]["lambda_um"] == 0.777
+    assert again.session_state["fg_cfg_name"] == "datei:x"
+
+
+def test_app_puts_session_id_into_url(fake_fg):
+    at = AppTest.from_file(APP, default_timeout=30).run()
+    assert not at.exception, at.exception
+    assert len(at.session_state["fg_session"]) == 12
+    assert any(at.session_state["fg_session"] in c.value for c in at.caption)
+
+
+def test_session_id_rejects_malformed(fake_fg):
+    at = AppTest.from_file(APP, default_timeout=30)
+    at.query_params["s"] = "../../etc/passwd"
+    at.run()
+    assert at.session_state["fg_session"] != "../../etc/passwd" and len(at.session_state["fg_session"]) == 12
+
+
+def test_runs_follow_the_session_id(fake_fg):
+    at, job_id = _run_editor_job(fake_fg)
+    sid = at.session_state["fg_session"]
+    other = AppTest.from_file(APP, default_timeout=30)
+    other.query_params["s"] = sid
+    other.run()
+    other.switch_page(str(Path(APP).parent / "pages" / "jobs.py"))
+    other.run()
+    assert not other.exception, other.exception
+    assert any(o.startswith(job_id) for o in other.selectbox[0].options)

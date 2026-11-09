@@ -64,6 +64,7 @@ CUDA. Die GUI lauscht auf `herkules3.ito.uni-stuttgart.de`, Port 8505 (Rechner h
 so freigegeben); der Port darf nicht nach außerhalb der Firewall geöffnet werden. Alternativ nginx (TLS, Anmeldung)
 oder SSH-Tunnel. Streamlit hat keine
 eigene Benutzerverwaltung – keine Funktionen bauen, die ohne Anmeldung Dateien außerhalb von `FG_GUI_DATA_DIR`
-lesen oder schreiben. Der Benutzername aus `FG_GUI_USER_HEADER` ist nur so verlässlich wie der Proxy (kein Direktzugriff auf
+lesen oder schreiben. Die Sitzungskennung (`?s=`) ist ein Zugangsschlüssel zu den Rechnungen und zur Editor-Konfiguration dieser Sitzung;
+sie wird als Dateiname verwendet und daher streng geprüft (`state.SESSION_RE`). Der Benutzername aus `FG_GUI_USER_HEADER` ist nur so verlässlich wie der Proxy (kein Direktzugriff auf
 den Streamlit-Port). Ausnahme: das Beispielverzeichnis (`FG_GUI_EXAMPLES_DIR`), nur lesend. CAD-Dateien einer
 Konfiguration werden nur aus `uploads/` und dem Beispielverzeichnis gelesen (`cad.resolve_files`, `state.submit_job`).

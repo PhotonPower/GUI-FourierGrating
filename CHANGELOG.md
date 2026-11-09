@@ -2,6 +2,16 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.9.0] – 2026-11-09
+
+### Hinzugefügt
+- Sitzungskennung in der Adresszeile (`…/?s=1a2b3c4d5e6f`): Wer die Adresse öffnet (Lesezeichen, anderes Gerät, nach einem
+  Neustart des Servers), arbeitet an denselben Rechnungen weiter („Nur meine Rechnungen“) und findet die zuletzt
+  bearbeitete Konfiguration im Editor wieder (`FG_GUI_DATA_DIR/sessions/<Kennung>.json`, wird mit
+  `FG_GUI_RETENTION_DAYS` aufgeräumt). Die Kennung steht auch in der Seitenleiste. Mit Anmeldung am Proxy
+  (`FG_GUI_USER_HEADER`) gehören die Rechnungen weiter dem Benutzer.
+- Die Kennung ist ein Zugangsschlüssel: wer sie kennt, sieht diese Rechnungen. Ungültige Kennungen werden ignoriert.
+
 ## [0.8.1] – 2026-11-09
 
 ### Hinzugefügt

@@ -7,12 +7,14 @@ from pathlib import Path
 import streamlit as st
 
 from fg_gui import __version__
-from fg_gui.state import current_user, job_manager, solver_info
+from fg_gui.state import current_user, job_manager, restore_draft, save_draft, session_id, solver_info
 
 PAGES = Path(__file__).parent / "pages"
 
 st.set_page_config(page_title="FourierGrating", page_icon="🌈", layout="wide")
 
+session_id()  # trägt ?s=<Kennung> in die Adresszeile ein
+restore_draft()
 nav = st.navigation(
     {
         "Rechnen": [
@@ -38,6 +40,10 @@ with st.sidebar:
         st.caption("FourierGrating: nicht installiert")
     if user := current_user():
         st.caption(f"Angemeldet: {user}")
+    st.caption(f"Sitzung: `{session_id()}` (steht in der Adresszeile – Adresse merken, um später weiterzuarbeiten)")
     st.caption(f"GUI {__version__} · aktive Rechnungen: {job_manager().busy()}")
 
-nav.run()
+try:
+    nav.run()
+finally:
+    save_draft()
