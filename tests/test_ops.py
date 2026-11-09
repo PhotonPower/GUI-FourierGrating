@@ -206,3 +206,27 @@ def test_safe_name():
     assert export.safe_name("Nahfeld: neu.json") == "Nahfeld_neu"
     assert export.safe_name("../../etc/passwd") == "etc_passwd" or "/" not in export.safe_name("../../etc/passwd")
     assert export.safe_name("", "x") == "x"
+
+
+def test_delete_owner(tmp_path):
+    import threading
+
+    jm = JobManager(store=RunStore(tmp_path / "runs"))
+    mine = [jm.submit(f"m{i}", FakeResult, owner="aaaa1111", kind="solve", config={}) for i in range(2)]
+    other = jm.submit("o", FakeResult, owner="bbbb2222", kind="solve", config={})
+    for j in (*mine, other):
+        j.future.result()
+    gate = threading.Event()
+    running = jm.submit("läuft", gate.wait, owner="aaaa1111")
+    while running.started is None:
+        time.sleep(0.01)
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    (sessions / "aaaa1111.json").write_text("{}")
+    (sessions / "bbbb2222.json").write_text("{}")
+    rep = housekeeping.delete_owner(jm, "aaaa1111", sessions, "aaaa1111")
+    gate.set()
+    assert (rep.runs, rep.running, rep.draft) == (2, 1, True)
+    assert jm.get(other.id) is not None and jm.get(running.id) is not None
+    assert not (sessions / "aaaa1111.json").exists() and (sessions / "bbbb2222.json").exists()
+    assert all(not jm.store.path(j.id).exists() for j in mine)

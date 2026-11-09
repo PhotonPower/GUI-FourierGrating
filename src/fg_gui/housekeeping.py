@@ -73,6 +73,38 @@ def purge_uploads(uploads: Path, jm: JobManager, retention_days: int, now: float
     return rep
 
 
+@dataclass
+class SessionReport:
+    runs: int = 0
+    #: nicht gelöscht, weil sie noch laufen
+    running: int = 0
+    draft: bool = False
+
+
+def delete_owner(jm: JobManager, owner: str, sessions: Path | None = None, session_id: str = "") -> SessionReport:
+    """Löscht alle Rechnungen von ``owner`` und den gemerkten Editor-Entwurf der Sitzung.
+
+    Wartende Rechnungen werden abgebrochen und gelöscht; eine laufende lässt sich nicht stoppen und bleibt.
+    """
+    rep = SessionReport()
+    for j in jm.jobs(owner=owner):
+        jm.cancel(j.id)
+        if jm.delete(j.id):
+            rep.runs += 1
+        else:
+            rep.running += 1
+    if sessions is not None and session_id:
+        f = sessions / f"{session_id}.json"
+        try:
+            if f.is_file() and not f.is_symlink() and f.parent == sessions:
+                f.unlink()
+                rep.draft = True
+        except OSError:
+            pass
+    log.info("Sitzung %s: %d Rechnungen gelöscht, %d laufen noch", owner or session_id, rep.runs, rep.running)
+    return rep
+
+
 def purge_drafts(sessions: Path, retention_days: int, now: float | None = None) -> int:
     """Löscht gemerkte Editor-Konfigurationen (``sessions/<Kennung>.json``), die seit ``retention_days`` ruhen."""
     if retention_days <= 0 or not sessions.is_dir():

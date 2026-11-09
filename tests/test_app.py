@@ -376,3 +376,21 @@ def test_runs_follow_the_session_id(fake_fg):
     other.run()
     assert not other.exception, other.exception
     assert any(o.startswith(job_id) for o in other.selectbox[0].options)
+
+
+def test_delete_own_session(fake_fg):
+    at, job_id = _run_editor_job(fake_fg)
+    old_sid = at.session_state["fg_session"]
+    at.switch_page(str(Path(APP).parent / "pages" / "jobs.py"))
+    at.run()
+    btn = next(b for b in at.button if b.label == "Sitzung löschen")
+    assert btn.disabled  # erst nach der Bestätigung
+    at.checkbox(key="fg_jobs_delete_session").check().run()
+    next(b for b in at.button if b.label == "Sitzung löschen").click().run()
+    assert not at.exception, at.exception
+    assert any("Sitzung gelöscht" in s.value for s in at.success)
+    assert "fg_cfg" not in at.session_state
+    from fg_gui.state import job_manager  # die Jobverwaltung bleibt bestehen; die Rechnung ist weg
+
+    assert job_manager().get(job_id) is None
+    assert at.session_state["fg_session"] != old_sid

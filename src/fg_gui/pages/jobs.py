@@ -8,7 +8,7 @@ import streamlit as st
 
 from fg_gui import config_io, estimate, export, results
 from fg_gui.jobs import CANCELLED, DONE, FAILED, RUNNING, WAITING
-from fg_gui.state import job_manager, open_in_editor, owner_id
+from fg_gui.state import delete_own_session, job_manager, open_in_editor, owner_id
 from fg_gui.store import KIND_LABELS
 
 PAGES = Path(__file__).parent
@@ -21,6 +21,19 @@ st.caption(
 )
 only_mine = st.toggle("Nur meine Rechnungen (Benutzer bzw. diese Sitzung)", value=True)
 jm = job_manager()
+if notice := st.session_state.pop("fg_notice", None):
+    st.success(notice)
+with st.expander("Meine Sitzung löschen"):
+    st.write(
+        "Entfernt **alle deine Rechnungen** samt Dateien und die gemerkte Konfiguration des Editors und beginnt "
+        "eine neue Sitzung mit neuer Kennung. Wartende Rechnungen werden abgebrochen; eine laufende lässt sich "
+        "nicht stoppen und bleibt bis zum Ende bestehen. Das kann nicht rückgängig gemacht werden – lade vorher "
+        "herunter, was du behalten willst. Hochgeladene STEP-Dateien bleiben liegen (Aufräumen: Betreiber)."
+    )
+    sure = st.checkbox("Ja, meine Sitzung endgültig löschen", key="fg_jobs_delete_session")
+    if st.button("Sitzung löschen", disabled=not sure, type="primary"):
+        delete_own_session()
+        st.rerun()
 
 
 def fmt_time(t: float | None) -> str:

@@ -123,6 +123,22 @@ def restore_draft() -> None:
         st.session_state["fg_gen"] = st.session_state.get("fg_gen", 0) + 1
 
 
+def delete_own_session() -> housekeeping.SessionReport:
+    """Löscht die eigenen Rechnungen und den Entwurf und beginnt eine neue, leere Sitzung (neue Kennung)."""
+    if not SESSION_RE.match(session_id()):
+        raise ValueError("ungültige Sitzungskennung")
+    rep = housekeeping.delete_owner(job_manager(), owner_id(), drafts_dir(), session_id())
+    for key in [k for k in st.session_state if str(k).startswith("fg")]:
+        del st.session_state[key]
+    st.query_params.clear()  # app.py trägt beim nächsten Lauf eine neue Kennung ein
+    st.session_state["fg_notice"] = (
+        f"Sitzung gelöscht: {rep.runs} Rechnung(en) entfernt"
+        + (f", {rep.running} laufende bleibt bis zum Ende bestehen" if rep.running else "")
+        + ". Es beginnt eine neue Sitzung."
+    )
+    return rep
+
+
 def current_user() -> str:
     """Angemeldeter Benutzer laut Proxy-Header (``FG_GUI_USER_HEADER``); ``""`` ohne Anmeldung."""
     header = settings().user_header

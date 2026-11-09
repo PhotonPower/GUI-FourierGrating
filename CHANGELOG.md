@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.10.0] – 2026-11-09
+
+### Hinzugefügt
+- Seite *Rechnungen*, Abschnitt „Meine Sitzung löschen“ (mit Bestätigung): entfernt alle eigenen Rechnungen samt
+  Dateien und den gemerkten Editor-Entwurf und beginnt eine neue Sitzung mit neuer Kennung. Wartende Rechnungen werden
+  abgebrochen; eine laufende bleibt bis zum Ende bestehen. Hochgeladene STEP-Dateien bleiben (Aufräumen: Betreiber).
+
 ## [0.9.1] – 2026-11-09
 
 ### Hinzugefügt

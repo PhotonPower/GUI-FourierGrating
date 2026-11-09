@@ -118,7 +118,8 @@ Arbeitsspeichers; er kann bei RK-Löser, vielen Scheiben oder GPU weit danebenli
 Die Adresszeile enthält deine Sitzungskennung (`?s=…`). **Adresse als Lesezeichen merken:** Mit ihr kommst du – auch
 von einem anderen Rechner oder nach einem Neustart des Servers – zu deinen Rechnungen und zur zuletzt bearbeiteten
 Konfiguration im Editor zurück. Wer die Adresse kennt, sieht deine Rechnungen; gib sie nur weiter, wenn das gewollt ist.
-Ohne Kennung in der Adresse beginnt eine neue Sitzung.
+Ohne Kennung in der Adresse beginnt eine neue Sitzung. Unter *Rechnungen → Meine Sitzung löschen* entfernst du
+alle deine Rechnungen und den gemerkten Entwurf und beginnst neu (nach Bestätigung, nicht rückgängig zu machen).
 
 ## System
 
