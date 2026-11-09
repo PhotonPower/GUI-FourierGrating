@@ -60,6 +60,8 @@ Diese Datei gilt für jeden, der an GUI-FourierGrating arbeitet. Lies sie vollst
 ## 7. Zielsystem
 
 Server AlmaLinux 10 (x86_64, Python 3.12), NVIDIA RTX 6000 Ada (sm_89, 48 GB), FourierGrating aus den Quellen mit
-CUDA. Die GUI lauscht nur auf `127.0.0.1`; Zugriff über nginx (TLS, Anmeldung) oder SSH-Tunnel. Streamlit hat keine
+CUDA. Die GUI lauscht auf `herkules3.ito.uni-stuttgart.de`, Port 8505 (Rechner hinter der Institutsfirewall, vom Betreiber
+so freigegeben); der Port darf nicht nach außerhalb der Firewall geöffnet werden. Alternativ nginx (TLS, Anmeldung)
+oder SSH-Tunnel. Streamlit hat keine
 eigene Benutzerverwaltung – keine Funktionen bauen, die ohne Anmeldung Dateien außerhalb von `FG_GUI_DATA_DIR`
 lesen oder schreiben.

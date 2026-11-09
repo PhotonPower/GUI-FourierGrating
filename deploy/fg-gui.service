@@ -11,7 +11,7 @@ User=fggui
 Group=fggui
 WorkingDirectory=/opt/fg-gui/GUI-FourierGrating
 EnvironmentFile=/etc/fg-gui/fg-gui.env
-ExecStart=/opt/fg-gui/venv/bin/fg-gui --server.address 127.0.0.1 --server.port 8501
+ExecStart=/opt/fg-gui/venv/bin/fg-gui --server.address herkules3.ito.uni-stuttgart.de --server.port 8505
 Restart=on-failure
 RestartSec=5
 

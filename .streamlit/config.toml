@@ -1,8 +1,8 @@
 # Gilt, wenn Streamlit im Repository-Verzeichnis gestartet wird (fg-gui, systemd: WorkingDirectory).
 [server]
 headless = true
-address = "127.0.0.1"          # nur lokal; von außen über nginx oder SSH-Tunnel (docs/deployment_rtx6000.md)
-port = 8501
+address = "herkules3.ito.uni-stuttgart.de"   # Zielrechner, nur im Netz hinter der Firewall (AGENTS.md, Abschnitt 7)
+port = 8505                    # 8501 SpeckleBEM, 8503 CadBEM, 8504 Mikroptim
 maxUploadSize = 200            # MB; STEP-Dateien (G5)
 enableXsrfProtection = true
 runOnSave = false

@@ -47,7 +47,7 @@ sudo cp deploy/fg-gui.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now fg-gui
 systemctl status fg-gui
-curl -s http://127.0.0.1:8501/_stcore/health    # "ok"
+curl -s http://herkules3.ito.uni-stuttgart.de:8505/_stcore/health    # "ok"
 journalctl -u fg-gui -f                         # Protokoll
 ```
 
@@ -66,7 +66,7 @@ Wichtige Variablen in `/etc/fg-gui/fg-gui.env`:
 **Variante A – SSH-Tunnel** (einzelne Nutzer, nichts weiter zu konfigurieren):
 
 ```bash
-ssh -N -L 8501:127.0.0.1:8501 benutzer@server     # dann http://localhost:8501
+ssh -N -L 8505:herkules3.ito.uni-stuttgart.de:8505 benutzer@server     # dann http://localhost:8505
 ```
 
 **Variante B – nginx** mit TLS und Basic-Auth (`deploy/nginx-fg-gui.conf`):
@@ -75,12 +75,12 @@ ssh -N -L 8501:127.0.0.1:8501 benutzer@server     # dann http://localhost:8501
 sudo dnf install nginx httpd-tools
 sudo htpasswd -c /etc/nginx/fg-gui.htpasswd <benutzer>
 sudo cp deploy/nginx-fg-gui.conf /etc/nginx/conf.d/fg-gui.conf   # server_name, Zertifikat anpassen
-sudo setsebool -P httpd_can_network_connect 1                    # SELinux: Proxy zu 127.0.0.1:8501
+sudo setsebool -P httpd_can_network_connect 1                    # SELinux: Proxy zu herkules3.ito.uni-stuttgart.de:8505
 sudo firewall-cmd --permanent --add-service=https && sudo firewall-cmd --reload
 sudo nginx -t && sudo systemctl enable --now nginx
 ```
 
-Den Port 8501 **nicht** in der Firewall öffnen: Streamlit hat keine Anmeldung.
+Den Port 8505 **nicht** nach außerhalb der Institutsfirewall öffnen: Streamlit hat keine Anmeldung.
 
 ## 6. Aktualisieren
 

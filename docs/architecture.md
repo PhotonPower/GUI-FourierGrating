@@ -3,7 +3,7 @@
 ## Überblick
 
 ```text
-Browser ──HTTPS──> nginx (TLS, Anmeldung) ──WebSocket──> Streamlit (127.0.0.1:8501)
+Browser ──HTTPS──> nginx (TLS, Anmeldung) ──WebSocket──> Streamlit (herkules3.ito.uni-stuttgart.de:8505)
                                                            │
                          app.py ── st.navigation ── pages/*.py   (je Interaktion neu ausgeführt)
                                                            │
@@ -64,4 +64,4 @@ die Dienstumgebung gesetzt (`deploy/fg-gui.env.example`), nicht in der GUI.
 | Threads statt Prozesse für Jobs | GIL frei während der Rechnung; Ergebnisse ohne Serialisierung; ein CUDA-Kontext |
 | Standard 1 Worker | eine GPU; jede Rechnung nutzt bereits alle Kerne (OpenMP) bzw. die GPU |
 | `fouriergrating` keine harte Abhängigkeit | Server baut es mit CUDA aus den Quellen; pip soll kein CPU-Wheel darüberlegen |
-| Lauschen nur auf 127.0.0.1 | Streamlit hat keine Anmeldung; Zugriff über nginx/SSH-Tunnel |
+| Lauschen auf herkules3, Port 8505 | Streamlit hat keine Anmeldung; Schutz durch die Firewall des Instituts, nicht öffentlich erreichbar |
