@@ -37,6 +37,8 @@ Reihenfolge wie aufgeführt (AGENTS.md).
 - [x] **G7** Betrieb
   - Anmeldung am vorgeschalteten Proxy (nginx Basic-Auth oder OIDC), Benutzer aus dem Header in den Rechnungen, Logging,
     Aufräumen alter Ergebnisse und Uploads, Health-Check (`fg-gui-health`) fürs Monitoring
+  - Danach ergänzt (0.8.1–0.9.1): Formulare für 2D-Schichten im Editor, Sitzungskennung `?s=` mit wiederhergestelltem
+    Editor-Entwurf, Download fertiger Rechnungen (ZIP) und Modelle (JSON)
 
 ## Anforderungen an FourierGrating
 

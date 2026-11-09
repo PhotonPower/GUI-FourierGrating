@@ -27,6 +27,11 @@ Browser ──HTTPS──> nginx (TLS, Anmeldung) ──WebSocket──> Streaml
 | `jobs.py` | Hintergrundrechnungen, Status, Fehler mit Traceback | nein |
 | `config_io.py` | JSON lesen/schreiben, Beispiele auflisten, Kurzübersicht | nein |
 | `results.py` | `fg.Result` → `pandas.DataFrame`, Summen | nein |
+| `config_form.py`, `widgets.py` | Editor: Eingaben ↔ Konfiguration (nur Geändertes wird geschrieben), Felder | nein |
+| `scans.py`, `nearfield.py`, `estimate.py` | Scan-/Nahfeld-Tabellen und -Bilder, Abschätzung von Aufwand und Speicher | nein |
+| `cad.py`, `optimize.py` | CAD-Dateien (Dateiwächter), Zielfunktion/Parameter/Verlauf der Optimierung | nein |
+| `store.py`, `export.py` | Rechnungen auf der Festplatte (`FG_GUI_DATA_DIR/runs`), ZIP-Download | nein |
+| `users.py`, `logs.py`, `housekeeping.py`, `health.py` | Proxy-Benutzer, Logging, Aufräumen, Health-Check (`fg-gui-health`) | nein |
 | `system.py` | `nvidia-smi` abfragen | nein |
 | `settings.py` | `FG_GUI_*`-Variablen | nein |
 | `cli.py` | Startbefehl `fg-gui` | – |
