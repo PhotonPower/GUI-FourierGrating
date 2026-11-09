@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fouriergrating-gui"
+version = "0.1.0"
+description = "Streamlit-Oberfläche für FourierGrating (Differentialmethode und RCWA)"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+# fouriergrating ist bewusst KEINE harte Abhängigkeit: auf dem Server wird es aus den Quellen mit CUDA gebaut
+# (docs/deployment_rtx6000.md); pip würde sonst ein CPU-Wheel darüber installieren.
+dependencies = [
+  "streamlit>=1.48",
+  "numpy>=1.23",
+  "pandas>=1.5",
+]
+
+[project.optional-dependencies]
+solver = ["fouriergrating>=0.18"]
+dev = ["pytest>=7", "ruff>=0.5"]
+
+[project.scripts]
+fg-gui = "fg_gui.cli:main"
+
+[project.urls]
+Repository = "https://github.com/PhotonPower/GUI-FourierGrating"
+Solver = "https://github.com/PhotonPower/FourierGrating"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["solver: braucht das echte Paket fouriergrating (sonst übersprungen)"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["fg_gui", "conftest"]

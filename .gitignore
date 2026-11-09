@@ -1,0 +1,23 @@
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+# Laufzeitdaten der GUI (FG_GUI_DATA_DIR)
+data/
+out/
+*.npy
+# lokale Einstellungen, Geheimnisse
+.env
+deploy/*.env
+!deploy/*.env.example
+.streamlit/secrets.toml
+# editors
+.vscode/
+.idea/
+*.swp

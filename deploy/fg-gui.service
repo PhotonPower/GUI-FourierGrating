@@ -1,0 +1,27 @@
+# systemd-Unit für die FourierGrating-GUI (AlmaLinux 10, RTX 6000 Ada).
+# Installation: docs/deployment_rtx6000.md, Abschnitt 4.
+[Unit]
+Description=FourierGrating Streamlit-GUI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fggui
+Group=fggui
+WorkingDirectory=/opt/fg-gui/GUI-FourierGrating
+EnvironmentFile=/etc/fg-gui/fg-gui.env
+ExecStart=/opt/fg-gui/venv/bin/fg-gui --server.address 127.0.0.1 --server.port 8501
+Restart=on-failure
+RestartSec=5
+
+# Härtung; GPU-Geräte (/dev/nvidia*) müssen erreichbar bleiben, daher kein PrivateDevices.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/fg-gui
+StateDirectory=fg-gui
+
+[Install]
+WantedBy=multi-user.target

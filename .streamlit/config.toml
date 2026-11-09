@@ -1,0 +1,17 @@
+# Gilt, wenn Streamlit im Repository-Verzeichnis gestartet wird (fg-gui, systemd: WorkingDirectory).
+[server]
+headless = true
+address = "127.0.0.1"          # nur lokal; von außen über nginx oder SSH-Tunnel (docs/deployment_rtx6000.md)
+port = 8501
+maxUploadSize = 200            # MB; STEP-Dateien (G5)
+enableXsrfProtection = true
+runOnSave = false
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+
+[theme]
+base = "light"
