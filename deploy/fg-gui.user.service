@@ -1,0 +1,21 @@
+# systemd-Benutzerdienst (ohne root) für die FourierGrating-GUI auf herkules3: systemctl --user ...
+# Installation: scripts/install_user_service.sh  (kopiert nach ~/.config/systemd/user/, legt die Umgebungsdatei an)
+# Läuft ohne Anmeldung weiter, wenn "loginctl enable-linger $USER" gesetzt ist (hier bereits der Fall).
+[Unit]
+Description=FourierGrating GUI (Streamlit)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/GUI-FourierGrating
+EnvironmentFile=%h/.config/fg-gui/env
+# CUDA-Laufzeit für fouriergrating (HPC SDK 25.5, CUDA 12.9), wie in .venv/bin/activate
+Environment=LD_LIBRARY_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/25.5/cuda/12.9/targets/x86_64-linux/lib:/opt/nvidia/hpc_sdk/Linux_x86_64/25.5/math_libs/12.9/targets/x86_64-linux/lib
+ExecStart=%h/GUI-FourierGrating/.venv/bin/fg-gui --server.address herkules3.ito.uni-stuttgart.de --server.port 8505
+Restart=on-failure
+RestartSec=5
+# Rechnungen laufen im Prozess; beim Stoppen kurz warten, damit Ergebnisse noch gespeichert werden
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

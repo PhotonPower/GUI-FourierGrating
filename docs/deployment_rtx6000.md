@@ -66,6 +66,24 @@ Wichtige Variablen in `/etc/fg-gui/fg-gui.env`:
 | `FG_GUI_HEALTH_REQUIRE_SOLVER` | `1`: `fg-gui-health` meldet Fehler, wenn FourierGrating fehlt | – |
 | `FG_NUM_THREADS`, `FG_CORE`, `FG_PRECISION`, `FG_GPU_STREAMS` | an FourierGrating | siehe dort |
 
+### Variante ohne root: systemd-Benutzerdienst (herkules3)
+
+Auf herkules3 läuft die GUI als Benutzerdienst (`systemctl --user`), wie die anderen GUIs dort:
+
+```bash
+scripts/install_user_service.sh            # kopiert deploy/fg-gui.user.service nach ~/.config/systemd/user/fg-gui.service,
+                                           # legt ~/.config/fg-gui/env an (aus deploy/fg-gui.user.env.example), startet
+systemctl --user status fg-gui             # Zustand
+systemctl --user restart fg-gui            # nach git pull / pip install -e . 
+journalctl --user -u fg-gui -f             # Protokoll (Logdatei optional: FG_GUI_LOG_FILE)
+loginctl enable-linger $USER               # Dienst läuft auch ohne Anmeldung und startet beim Booten (hier schon gesetzt)
+```
+
+Die Unit setzt `LD_LIBRARY_PATH` für die CUDA-Laufzeit (HPC SDK 25.5), startet bei Absturz neu (`Restart=on-failure`)
+und nutzt `.streamlit/config.toml` für Adresse, Port und Upload-Grenze. Einstellungen stehen in `~/.config/fg-gui/env`
+(absolute Pfade; `FG_GUI_*`-Tabelle oben). Beim Neustart gelten laufende Rechnungen als unterbrochen („Server wurde neu
+gestartet“); wartende und fertige bleiben erhalten.
+
 ## 5. Zugriff
 
 **Variante A – SSH-Tunnel** (einzelne Nutzer, nichts weiter zu konfigurieren):

@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.10.1] – 2026-11-09
+
+### Hinzugefügt
+- systemd-Benutzerdienst für herkules3: `deploy/fg-gui.user.service`, `deploy/fg-gui.user.env.example` und
+  `scripts/install_user_service.sh` (`systemctl --user … fg-gui`, Neustart bei Absturz, CUDA-Laufzeit gesetzt).
+  Der Entwicklungsstart `scripts/run_dev.sh` bleibt für lokale Arbeit.
+
 ## [0.10.0] – 2026-11-09
 
 ### Hinzugefügt
