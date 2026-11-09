@@ -5,11 +5,13 @@ Schlüssel in ``st.session_state`` beginnen mit ``fg_`` (AGENTS.md, Abschnitt 4)
 
 from __future__ import annotations
 
+import threading
+import time
 import uuid
 
 import streamlit as st
 
-from . import cad, solver
+from . import cad, housekeeping, logs, solver, users
 from . import settings as _settings
 from .jobs import Job, JobManager
 from .store import RunStore
@@ -23,7 +25,31 @@ def settings() -> _settings.Settings:
 @st.cache_resource
 def job_manager() -> JobManager:
     s = settings()
-    return JobManager(workers=s.workers, history=s.job_history, store=RunStore(s.data_dir / "runs"))
+    logs.configure(s.log_level, s.log_file)
+    jm = JobManager(workers=s.workers, history=s.job_history, store=RunStore(s.data_dir / "runs"))
+    sweep_now(jm)
+    return jm
+
+
+_sweep_lock = threading.Lock()
+_last_sweep = 0.0
+SWEEP_INTERVAL = 3600.0
+
+
+def sweep_now(jm: JobManager | None = None) -> housekeeping.Report:
+    """Räumt nach ``FG_GUI_RETENTION_DAYS``/``FG_GUI_MAX_RUNS`` auf (ohne Vorgaben passiert nichts)."""
+    global _last_sweep
+    s = settings()
+    with _sweep_lock:
+        _last_sweep = time.time()
+        if not (s.retention_days or s.max_runs):
+            return housekeeping.Report()
+        return housekeeping.sweep(jm or job_manager(), uploads_dir(), s.retention_days, s.max_runs)
+
+
+def sweep_if_due() -> None:
+    if time.time() - _last_sweep > SWEEP_INTERVAL:
+        sweep_now()
 
 
 @st.cache_data(ttl=60)
@@ -36,6 +62,22 @@ def session_id() -> str:
     if "fg_session" not in st.session_state:
         st.session_state["fg_session"] = uuid.uuid4().hex[:8]
     return st.session_state["fg_session"]
+
+
+def current_user() -> str:
+    """Angemeldeter Benutzer laut Proxy-Header (``FG_GUI_USER_HEADER``); ``""`` ohne Anmeldung."""
+    header = settings().user_header
+    if not header:
+        return ""
+    try:
+        return users.user_from_headers(st.context.headers, header)
+    except Exception:  # außerhalb einer Sitzung (Tests) gibt es keinen Kontext
+        return ""
+
+
+def owner_id() -> str:
+    """Besitzer neuer Rechnungen: der Benutzer, sonst die Browsersitzung."""
+    return current_user() or session_id()
 
 
 def open_in_editor(cfg: dict, name: str) -> None:
@@ -60,6 +102,7 @@ def submit_job(label: str, fn, cfg: dict, *, kind: str, **kwargs) -> Job:
     Konfiguration mit aufgelösten absoluten Pfaden.
     """
     s = settings()
+    sweep_if_due()
     roots = [uploads_dir()] + ([s.examples_dir] if s.examples_dir else [])
     prepared = cad.resolve_files(cfg, bases=roots, roots=roots)
-    return job_manager().submit(label, fn, prepared, owner=session_id(), kind=kind, config=prepared, **kwargs)
+    return job_manager().submit(label, fn, prepared, owner=owner_id(), kind=kind, config=prepared, **kwargs)

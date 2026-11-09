@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fouriergrating-gui"
-version = "0.7.0"
+version = "0.8.0"
 description = "Streamlit-Oberfläche für FourierGrating (Differentialmethode und RCWA)"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -25,6 +25,7 @@ dev = ["pytest>=7", "ruff>=0.5"]
 
 [project.scripts]
 fg-gui = "fg_gui.cli:main"
+fg-gui-health = "fg_gui.health:main"
 
 [project.urls]
 Repository = "https://github.com/PhotonPower/GUI-FourierGrating"

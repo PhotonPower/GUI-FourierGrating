@@ -25,6 +25,16 @@ class Settings:
     workers: int
     #: Anzahl aufbewahrter Rechnungen im Speicher (älteste fertige fallen heraus)
     job_history: int
+    #: HTTP-Header, in dem ein vorgeschalteter Proxy den angemeldeten Benutzer übergibt (z. B. ``X-Remote-User``);
+    #: leer = keine Anmeldung, Rechnungen gehören der Browsersitzung
+    user_header: str
+    #: fertige Rechnungen (und nicht mehr gebrauchte Uploads) nach so vielen Tagen löschen; 0 = nie
+    retention_days: int
+    #: höchstens so viele Rechnungen behalten (die ältesten fertigen fallen heraus); 0 = unbegrenzt
+    max_runs: int
+    log_level: str
+    #: zusätzliche Logdatei (rotierend); leer = nur Standardfehlerausgabe (systemd-Journal)
+    log_file: Path | None
 
 
 def load() -> Settings:
@@ -35,4 +45,9 @@ def load() -> Settings:
         examples_dir=Path(ex).expanduser() if ex else None,
         workers=_int("FG_GUI_WORKERS", 1),
         job_history=_int("FG_GUI_JOB_HISTORY", 50),
+        user_header=os.environ.get("FG_GUI_USER_HEADER", "").strip(),
+        retention_days=_int("FG_GUI_RETENTION_DAYS", 0, minimum=0),
+        max_runs=_int("FG_GUI_MAX_RUNS", 0, minimum=0),
+        log_level=os.environ.get("FG_GUI_LOG_LEVEL", "INFO").strip().upper() or "INFO",
+        log_file=Path(lf).expanduser() if (lf := os.environ.get("FG_GUI_LOG_FILE", "").strip()) else None,
     )

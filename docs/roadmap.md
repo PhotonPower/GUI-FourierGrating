@@ -34,8 +34,9 @@ Reihenfolge wie aufgeführt (AGENTS.md).
   - `Simulation.value_and_grad`: Zielfunktion aus Ordnungen/Gewichten, Parameterwahl per JSON-Pointer,
     L-BFGS-B mit Grenzen, Verlauf live
   - Abnahme: `optimize_littrow.py` von FourierGrating reproduziert
-- [ ] **G7** Betrieb
-  - Anmeldung (nginx/OIDC), Benutzer in Jobs, Logging, Aufräumen alter Ergebnisse, Health-Check im Monitoring
+- [x] **G7** Betrieb
+  - Anmeldung am vorgeschalteten Proxy (nginx Basic-Auth oder OIDC), Benutzer aus dem Header in den Rechnungen, Logging,
+    Aufräumen alter Ergebnisse und Uploads, Health-Check (`fg-gui-health`) fürs Monitoring
 
 ## Anforderungen an FourierGrating
 

@@ -11,6 +11,7 @@ abbrechen; eine laufende Rechnung nicht (FourierGrating bietet keinen Abbruch).
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 import traceback
@@ -24,6 +25,7 @@ from .store import RunStore
 
 WAITING, RUNNING, DONE, FAILED, CANCELLED = "wartend", "läuft", "fertig", "Fehler", "abgebrochen"
 INTERRUPTED = "Server wurde neu gestartet"
+log = logging.getLogger("fg_gui.jobs")
 
 
 @dataclass
@@ -115,6 +117,7 @@ class JobManager:
             )
             if job.finished is None:
                 job.finished, job.error = time.time(), INTERRUPTED
+                log.warning("Rechnung %s (%s) war beim Neustart unfertig", job.id, job.label)
                 self._persist(job)
             if job.status == DONE:
                 if self.store.has_result(job.id, job.kind):
@@ -148,6 +151,7 @@ class JobManager:
             job = self._jobs[job_id]
             job.started = time.time()
             self._persist(job)
+            log.info("Rechnung %s gestartet (%s, %s, Benutzer %s)", job_id, kind or "-", job.label, owner or "-")
             try:
                 result = fn(*args, **kwargs)
                 if self.store is not None and kind:
@@ -159,10 +163,13 @@ class JobManager:
             except BaseException as e:
                 job.error = f"{type(e).__name__}: {e}"
                 job.traceback = traceback.format_exc()
+                log.error("Rechnung %s fehlgeschlagen: %s", job_id, job.error)
                 raise
             finally:
                 job.finished = time.time()
                 self._persist(job)
+                if not job.error:
+                    log.info("Rechnung %s fertig in %.2f s", job_id, job.runtime or 0.0)
 
         with self._lock:
             job = Job(id=job_id, label=label, owner=owner, submitted=time.time(), kind=kind, progress=progress)
@@ -173,6 +180,7 @@ class JobManager:
                 except OSError:
                     pass
             self._persist(job)
+            log.info("Rechnung %s eingereicht (%s, %s, Benutzer %s)", job_id, kind or "-", label, owner or "-")
             job.future = self._pool.submit(run)
             self._trim()
         return job
@@ -214,6 +222,7 @@ class JobManager:
             return False
         job.cancelled, job.finished = True, time.time()
         self._persist(job)
+        log.info("Rechnung %s abgebrochen", job_id)
         return True
 
     def delete(self, job_id: str) -> bool:
@@ -225,11 +234,12 @@ class JobManager:
             del self._jobs[job_id]
         if self.store is not None:
             self.store.delete(job_id)
+        log.info("Rechnung %s gelöscht", job_id)
         return True
 
     def _trim(self) -> None:
         if self.store is not None:
-            return  # die Liste ist das Verzeichnis der gespeicherten Rechnungen; Aufräumen: G7
+            return  # die Liste ist das Verzeichnis der gespeicherten Rechnungen; Aufräumen: housekeeping.py
         done = sorted((j for j in self._jobs.values() if j.finished is not None), key=lambda j: j.submitted)
         while len(self._jobs) > self._history and done:
             self._jobs.pop(done.pop(0).id, None)

@@ -99,7 +99,8 @@ Traceback.
 
 Alle Rechnungen (Einzelrechnung, Scan, Nahfeld) werden gespeichert (`FG_GUI_DATA_DIR/runs/<id>/`) und bleiben nach
 einem Neustart des Servers in der Liste. Die Tabelle zeigt Art, Status, **Platz** in der Warteschlange und Laufzeit;
-„Nur diese Sitzung“ blendet die Rechnungen anderer Nutzer aus. Unter *Einzelne Rechnung*:
+„Nur meine Rechnungen“ blendet die anderer Nutzer aus (mit Anmeldung am Proxy gilt das über Sitzungen und Geräte
+hinweg, sonst nur für diese Browsersitzung). Der Betreiber kann alte Rechnungen automatisch löschen lassen. Unter *Einzelne Rechnung*:
 
 * **Abbrechen** – nur für wartende Rechnungen (eine laufende lässt sich nicht unterbrechen).
 * **Löschen** – entfernt eine beendete Rechnung samt Dateien.
@@ -114,4 +115,6 @@ Arbeitsspeichers; er kann bei RK-Löser, vielen Scheiben oder GPU weit danebenli
 
 Version und Kern von FourierGrating (`cpu` oder `cuda12`), ob CUDA nutzbar und der CAD-Slicer eingebaut ist,
 Backend-Voreinstellung, GPU-Zustand (Speicher, Auslastung, Temperatur) und die Einstellungen der GUI.
-*Neu prüfen* liest die Angaben zum Löser erneut.
+*Neu prüfen* liest die Angaben zum Löser erneut. Der Abschnitt „Betrieb“ zeigt die Gesundheitsprüfung, den
+Speicherbedarf der gespeicherten Rechnungen und den Knopf *Jetzt aufräumen* (nur wenn der Betreiber eine Aufbewahrung
+eingestellt hat).

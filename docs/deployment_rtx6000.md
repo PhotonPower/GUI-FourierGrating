@@ -58,7 +58,12 @@ Wichtige Variablen in `/etc/fg-gui/fg-gui.env`:
 | `FG_GUI_DATA_DIR` | Laufzeitdaten | `data` (Dienst: `/var/lib/fg-gui`) |
 | `FG_GUI_EXAMPLES_DIR` | Beispielkonfigurationen | – (Dienst: `FourierGrating/examples`) |
 | `FG_GUI_WORKERS` | gleichzeitige Rechnungen | 1 |
-| `FG_GUI_JOB_HISTORY` | Rechnungen im Speicher; ohne Datenverzeichnis-Speicher relevant (mit Speicher bleibt alles erhalten, Aufräumen: G7) | 50 |
+| `FG_GUI_JOB_HISTORY` | Rechnungen im Speicher; ohne Datenverzeichnis-Speicher relevant (mit Speicher bleibt alles erhalten; Aufräumen siehe unten) | 50 |
+| `FG_GUI_USER_HEADER` | Header mit dem vom Proxy angemeldeten Benutzer (`X-Remote-User`); leer = keine Anmeldung | – |
+| `FG_GUI_RETENTION_DAYS` | beendete Rechnungen und ungenutzte Uploads nach so vielen Tagen löschen | 0 (aus) |
+| `FG_GUI_MAX_RUNS` | höchstens so viele Rechnungen behalten (älteste zuerst löschen) | 0 (unbegrenzt) |
+| `FG_GUI_LOG_LEVEL`, `FG_GUI_LOG_FILE` | Protokollstufe; zusätzliche rotierende Logdatei | `INFO`, – |
+| `FG_GUI_HEALTH_REQUIRE_SOLVER` | `1`: `fg-gui-health` meldet Fehler, wenn FourierGrating fehlt | – |
 | `FG_NUM_THREADS`, `FG_CORE`, `FG_PRECISION`, `FG_GPU_STREAMS` | an FourierGrating | siehe dort |
 
 ## 5. Zugriff
@@ -81,6 +86,28 @@ sudo nginx -t && sudo systemctl enable --now nginx
 ```
 
 Den Port 8505 **nicht** nach außerhalb der Institutsfirewall öffnen: Streamlit hat keine Anmeldung.
+
+### Benutzer und Anmeldung
+
+Die GUI meldet nicht selbst an. Setzt man `FG_GUI_USER_HEADER=X-Remote-User`, übernimmt sie den Namen, den der Proxy
+nach erfolgreicher Anmeldung in diesen Header schreibt; Rechnungen gehören dann dem Benutzer (sichtbar in der Liste
+und im Log). nginx überschreibt den Header mit `$remote_user` (Basic-Auth, siehe Vorlage). Für OIDC (Uni-Konto,
+Keycloak, …) schaltet man `oauth2-proxy` vor Streamlit bzw. nginx per `auth_request` und gibt dessen Benutzer als
+`X-Remote-User` weiter. **Voraussetzung:** Streamlit ist nur über den Proxy erreichbar; wer den Port direkt
+erreicht, kann den Header selbst setzen. Dann Streamlit an `127.0.0.1` binden (`--server.address 127.0.0.1`) oder
+den Port per Firewall auf den Proxy beschränken. Es gibt keine Rollen: jeder Angemeldete sieht alle Rechnungen
+(Schalter „Nur meine Rechnungen“) und kann sie löschen.
+
+### Monitoring, Log, Aufräumen
+
+```bash
+fg-gui-health --url http://herkules3.ito.uni-stuttgart.de:8505    # Exit-Code 0 = gesund (Nagios/Icinga/cron)
+journalctl -u fg-gui -f                                           # Log: eingereicht/gestartet/fertig/Fehler
+```
+
+Die Laufzeitdaten wachsen mit jeder Rechnung. `FG_GUI_RETENTION_DAYS=90` und/oder `FG_GUI_MAX_RUNS=500` räumen beim
+Start, danach stündlich beim Einreichen und per Knopf auf der Seite *System* auf. Wartende und laufende Rechnungen
+bleiben immer; Uploads nur, wenn keine gespeicherte Konfiguration sie nennt.
 
 ## 6. Aktualisieren
 

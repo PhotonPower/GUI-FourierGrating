@@ -2,6 +2,21 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.8.0] – 2026-11-09
+
+### Hinzugefügt (G7)
+- Benutzer: `FG_GUI_USER_HEADER` (z. B. `X-Remote-User`) liest den vom Proxy gesetzten Namen; Rechnungen gehören dem
+  Benutzer statt der Browsersitzung („Nur meine Rechnungen“ gilt dann über Sitzungen und Geräte hinweg); Anzeige in
+  der Seitenleiste und in der Rechnungsliste. Ohne Angabe bleibt alles wie bisher.
+- Logging (`fg_gui.*`): Einreichen, Start, Ende, Fehler, Abbruch, Löschen mit Benutzer und Laufzeit; stderr
+  (journald) und optional rotierende Datei (`FG_GUI_LOG_FILE`, `FG_GUI_LOG_LEVEL`).
+- Aufräumen: `FG_GUI_RETENTION_DAYS` und `FG_GUI_MAX_RUNS` löschen beendete Rechnungen; Uploads nur, wenn sie alt und
+  in keiner gespeicherten Konfiguration mehr genannt sind. Beim Start, danach höchstens stündlich beim Einreichen und
+  per Knopf auf der Seite *System*. Standard: aus.
+- Health-Check `fg-gui-health [--url …]` (Exit-Code 0/1; Datenverzeichnis, `/_stcore/health`, Löser) und Abschnitt
+  „Betrieb“ auf der Seite *System* (Gesundheit, Speicherbedarf).
+- nginx-Vorlage reicht den Benutzer als `X-Remote-User` durch; Anleitung für OIDC (oauth2-proxy).
+
 ## [0.7.0] – 2026-11-09
 
 ### Hinzugefügt (G6)

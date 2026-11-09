@@ -8,7 +8,7 @@ import streamlit as st
 
 from fg_gui import config_io, estimate, results
 from fg_gui.jobs import CANCELLED, DONE, FAILED, RUNNING, WAITING
-from fg_gui.state import job_manager, open_in_editor, session_id
+from fg_gui.state import job_manager, open_in_editor, owner_id
 from fg_gui.store import KIND_LABELS
 
 PAGES = Path(__file__).parent
@@ -19,7 +19,7 @@ st.caption(
     "eine Rechnung zugleich; die übrigen warten in der Reihenfolge des Einreichens. Wartende lassen sich abbrechen, "
     "eine laufende nicht (FourierGrating bietet keinen Abbruch)."
 )
-only_mine = st.toggle("Nur diese Sitzung", value=True)
+only_mine = st.toggle("Nur meine Rechnungen (Benutzer bzw. diese Sitzung)", value=True)
 jm = job_manager()
 
 
@@ -29,7 +29,7 @@ def fmt_time(t: float | None) -> str:
 
 @st.fragment(run_every=2.0)
 def table() -> None:
-    jobs = jm.jobs(owner=session_id() if only_mine else None)
+    jobs = jm.jobs(owner=owner_id() if only_mine else None)
     if not jobs:
         st.info("Keine Rechnungen.")
         return
@@ -37,6 +37,7 @@ def table() -> None:
         pd.DataFrame(
             {
                 "ID": [j.id for j in jobs],
+                "Benutzer": [j.owner for j in jobs],
                 "Art": [KIND_LABELS.get(j.kind, j.kind) for j in jobs],
                 "Bezeichnung": [j.label for j in jobs],
                 "Status": [j.status for j in jobs],
@@ -54,7 +55,7 @@ def table() -> None:
 table()
 
 # ---------------------------------------------------------------- Einzelne Rechnung
-jobs = jm.jobs(owner=session_id() if only_mine else None)
+jobs = jm.jobs(owner=owner_id() if only_mine else None)
 if not jobs:
     st.stop()
 
