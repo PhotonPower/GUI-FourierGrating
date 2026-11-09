@@ -2,6 +2,18 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.9.1] – 2026-11-09
+
+### Hinzugefügt
+- Seite *Rechnungen*: **Rechnung herunterladen (.zip)** für fertige Rechnungen (Konfiguration, Metadaten, lesbare
+  Tabellen je Art – `orders.csv`/`totals.json`, `efficiencies.csv`, Nahfeld-Arrays wie `fgsolve`, `history.csv`/
+  `optimum.json` – sowie die gespeicherten Rohdateien unter `raw/`) und **Modell herunterladen (.json)** (Konfiguration
+  im Format von FourierGrating). Der Editor konnte das Modell schon im Reiter *JSON* herunterladen.
+
+### Behoben
+- Seite *Rechnungen*: Bei Optimierungen und CAD-Prüfungen waren die Schaltflächen „In der Optimierung/im CAD öffnen“
+  doppelt vorhanden (doppelte Widget-Kennung).
+
 ## [0.9.0] – 2026-11-09
 
 ### Hinzugefügt

@@ -124,18 +124,25 @@ def png_bytes(fig) -> bytes:
     return buf.getvalue()
 
 
+def export_files(nf: dict) -> dict[str, bytes]:
+    """Dateien ``nearfield_<schnitt>/{<Größe>.npy, material.npy, meta.json}`` wie ``fgsolve`` (Pfad → Inhalt)."""
+    files: dict[str, bytes] = {}
+    for name in cut_names(nf):
+        cut = nf[name]
+        for key, value in cut.items():
+            if isinstance(value, np.ndarray) and key not in _NOT_FIELDS:
+                b = io.BytesIO()
+                np.save(b, value)
+                files[f"nearfield_{name}/{key}.npy"] = b.getvalue()
+        files[f"nearfield_{name}/meta.json"] = json.dumps(cut.get("meta", {}), indent=2).encode()
+    return files
+
+
 def export_zip(nf: dict) -> bytes:
-    """ZIP mit ``nearfield_<schnitt>/{<Größe>.npy, material.npy, meta.json}`` wie ``fgsolve``."""
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        for name in cut_names(nf):
-            cut = nf[name]
-            for key, value in cut.items():
-                if isinstance(value, np.ndarray) and key not in _NOT_FIELDS:
-                    b = io.BytesIO()
-                    np.save(b, value)
-                    z.writestr(f"nearfield_{name}/{key}.npy", b.getvalue())
-            z.writestr(f"nearfield_{name}/meta.json", json.dumps(cut.get("meta", {}), indent=2))
+        for path, data in export_files(nf).items():
+            z.writestr(path, data)
     return buf.getvalue()
 
 

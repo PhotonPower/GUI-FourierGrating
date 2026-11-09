@@ -104,6 +104,8 @@ hinweg, sonst nur für diese Browsersitzung). Der Betreiber kann alte Rechnungen
 
 * **Abbrechen** – nur für wartende Rechnungen (eine laufende lässt sich nicht unterbrechen).
 * **Löschen** – entfernt eine beendete Rechnung samt Dateien.
+* **Rechnung herunterladen (.zip)** – Konfiguration, Ergebnistabellen (CSV/JSON, beim Nahfeld `.npy`) und die
+  gespeicherten Rohdateien; **Modell herunterladen (.json)** – nur die Konfiguration.
 * **Im Editor öffnen** übernimmt die gespeicherte Konfiguration; **Im Scan / Nahfeld öffnen** zeigt das Ergebnis dort.
 * Was beim Neustart noch wartete oder lief, steht als Fehler „Server wurde neu gestartet“ da; bitte neu einreichen.
 

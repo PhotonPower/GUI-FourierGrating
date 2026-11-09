@@ -142,3 +142,67 @@ def test_purge_drafts(tmp_path):
     os.utime(old, (time.time() - 40 * DAY,) * 2)
     assert housekeeping.purge_drafts(d, 30) == 1 and not old.exists() and new.exists()
     assert housekeeping.purge_drafts(d, 0) == 0
+
+
+# ---------------------------------------------------------------- Download fertiger Rechnungen
+def test_run_zip_for_each_kind(tmp_path):
+    import io
+    import json as _json
+    import zipfile
+
+    from conftest import FakeScan, make_fake_nearfield
+    from fg_gui import export
+
+    jm = JobManager(store=RunStore(tmp_path / "runs"))
+    cfg = {"dimension": "1D"}
+    made = {
+        "solve": jm.submit("Test: a/b.json", FakeResult, kind="solve", config=cfg),
+        "scan": jm.submit("scan", lambda: FakeScan("/p"), kind="scan", config=cfg),
+        "nearfield": jm.submit("nf", make_fake_nearfield, kind="nearfield", config=cfg),
+    }
+    for j in made.values():
+        j.future.result()
+    expect = {"solve": "orders.csv", "scan": "efficiencies.csv", "nearfield": "meta.json"}
+    for kind, job in made.items():
+        z = zipfile.ZipFile(io.BytesIO(export.run_zip(job, jm.store)))
+        names = z.namelist()
+        root = names[0].split("/")[0]
+        assert "/" not in root[: len(root)] and ".." not in root
+        assert f"{root}/config.json" in names and f"{root}/meta.json" in names
+        assert any(n.endswith(expect[kind]) for n in names), (kind, names)
+        assert any("/raw/" in n for n in names)
+        assert _json.loads(z.read(f"{root}/config.json")) == cfg
+
+
+def test_run_zip_optimize_and_refuses_unfinished(tmp_path):
+    import threading
+
+    from fg_gui import export
+
+    jm = JobManager(store=RunStore(tmp_path / "runs"))
+    res = {"value": 1.0, "x": {"/a": 2.0}, "start": {"/a": 1.0}, "history": [
+        {"eval": 1, "value": 0.5, "best": 0.5, "grad_norm": 0.1, "x": [1.0]}]}  # fmt: skip
+    j = jm.submit("opt", lambda: res, kind="optimize", config={})
+    j.future.result()
+    import io
+    import zipfile
+
+    names = zipfile.ZipFile(io.BytesIO(export.run_zip(j, jm.store))).namelist()
+    assert any(n.endswith("history.csv") for n in names) and any(n.endswith("optimum.json") for n in names)
+    gate = threading.Event()
+    busy = jm.submit("busy", gate.wait, kind="")
+    try:
+        export.run_zip(busy, jm.store)
+        raise AssertionError("sollte scheitern")
+    except ValueError:
+        pass
+    finally:
+        gate.set()
+
+
+def test_safe_name():
+    from fg_gui import export
+
+    assert export.safe_name("Nahfeld: neu.json") == "Nahfeld_neu"
+    assert export.safe_name("../../etc/passwd") == "etc_passwd" or "/" not in export.safe_name("../../etc/passwd")
+    assert export.safe_name("", "x") == "x"

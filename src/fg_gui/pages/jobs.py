@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from fg_gui import config_io, estimate, results
+from fg_gui import config_io, estimate, export, results
 from fg_gui.jobs import CANCELLED, DONE, FAILED, RUNNING, WAITING
 from fg_gui.state import job_manager, open_in_editor, owner_id
 from fg_gui.store import KIND_LABELS
@@ -110,15 +110,27 @@ if job.status == DONE and job.kind == "optimize" and b[3].button("In der Optimie
 if job.status == DONE and job.kind == "cad" and b[3].button("Im CAD öffnen"):
     st.session_state["fg_cad_job"] = job.id
     st.switch_page(PAGES / "cad.py")
-if job.status == DONE and job.kind == "optimize" and b[3].button("In der Optimierung öffnen"):
-    st.session_state["fg_opt_job"] = job.id
-    st.switch_page(PAGES / "optimize.py")
-if job.status == DONE and job.kind == "cad" and b[3].button("Im CAD öffnen"):
-    st.session_state["fg_cad_job"] = job.id
-    st.switch_page(PAGES / "cad.py")
 if job.status == DONE and job.kind == "nearfield" and b[3].button("Im Nahfeld öffnen"):
     st.session_state["fg_nf_job"] = job.id
     st.switch_page(PAGES / "nearfield.py")
+
+d = st.columns(4)
+if job.status == DONE:
+    d[0].download_button(
+        "Rechnung herunterladen (.zip)",
+        export.run_zip(job, jm.store),
+        file_name=f"{export.safe_name(job.label)}_{job.id}.zip",
+        mime="application/zip",
+        help="Konfiguration, Ergebnis als Tabellen/Arrays und die gespeicherten Rohdateien",
+    )
+if cfg is not None:
+    d[1].download_button(
+        "Modell herunterladen (.json)",
+        config_io.dumps(cfg).encode(),
+        file_name=export.safe_name(job.label, "modell") + ".json",
+        mime="application/json",
+        help="Konfiguration dieser Rechnung im JSON-Format von FourierGrating",
+    )
 
 if job.status == FAILED:
     st.error(job.error)
