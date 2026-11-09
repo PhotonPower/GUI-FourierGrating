@@ -15,7 +15,10 @@ st.set_page_config(page_title="FourierGrating", page_icon="🌈", layout="wide")
 
 nav = st.navigation(
     {
-        "Rechnen": [st.Page(PAGES / "single.py", title="Einzelrechnung", icon="▶️", default=True)],
+        "Rechnen": [
+            st.Page(PAGES / "editor.py", title="Editor", icon="✏️", default=True),
+            st.Page(PAGES / "single.py", title="Einzelrechnung", icon="▶️"),
+        ],
         "Betrieb": [
             st.Page(PAGES / "jobs.py", title="Rechnungen", icon="📋"),
             st.Page(PAGES / "system.py", title="System", icon="🖥️"),

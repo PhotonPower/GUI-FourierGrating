@@ -2,6 +2,19 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.2.0] – 2026-11-09
+
+### Hinzugefügt (G1)
+- Seite *Editor* (Startseite): Konfiguration neu anlegen, aus Beispiel oder Datei laden, per Formular bearbeiten,
+  als JSON ansehen/ändern und herunterladen; Rechnen mit Fehleranzeige.
+- Formulare: Grundeinstellungen (Dimension, Löser, Abbruch, Periode, Superstrat/Substrat), Einfall (Zahl, Liste
+  `a, b`, Bereich `von:bis:Schritte`), Materialien (n, ε, Hauptwerte ε mit Euler-Winkeln, Tensor als JSON),
+  Schichten (`homogeneous`, `lamellar1d` als Tabelle, `profile1d`; andere Typen als JSON je Schicht), Löseroptionen.
+- Nur geänderte Felder werden geschrieben: unbekannte Schlüssel, Reihenfolge und Zahlenformate bleiben erhalten;
+  Roundtrip-Tests über alle Beispiele von FourierGrating.
+- Fehler von FourierGrating werden dem Reiter bzw. der Schicht zugeordnet (Stichwörter; Feldpfade fehlen dort noch,
+  siehe `docs/roadmap.md`).
+
 ## [0.1.0] – 2026-11-09
 
 ### Hinzugefügt (G0)

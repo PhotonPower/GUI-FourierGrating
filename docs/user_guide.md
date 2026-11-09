@@ -3,6 +3,22 @@
 Die GUI ist im Browser erreichbar (Adresse und Zugang: Betreiber, siehe `deployment_rtx6000.md`). Links steht die
 Navigation, darunter Version und Kern von FourierGrating sowie die Zahl der laufenden Rechnungen.
 
+## Editor
+
+Startseite zum Bearbeiten und Rechnen. **Quelle**: *Neu* (1D-Lamellengitter als Vorlage), *Beispiel* oder
+*Datei hochladen*. Reiter:
+
+* **Grundeinstellungen** – Dimension, Löser, Fourier-Ordnungen, Periode, Superstrat und Substrat.
+* **Einfall** – λ, φ, ψ, δ als Zahl, Liste (`0.5, 0.6, 0.7`; ein Element als `0.5,`) oder Bereich `von:bis:Schritte`.
+* **Materialien** – Art wählen (n, ε, Hauptwerte, Tensor), hinzufügen, entfernen.
+* **Schichten** – von unten nach oben; ↑ ↓ ✕ ordnen bzw. löschen. `homogeneous`, `lamellar1d` (Tabelle der Lamellen),
+  `profile1d` haben Formulare; andere Typen (2D, CAD) bearbeitest du als JSON der Schicht.
+* **Löser** – RK/RCWA-Optionen, Rechenkern, Genauigkeit, Threads.
+* **JSON** – ganze Konfiguration; „Übernehmen“ ersetzt die Formularwerte; „Herunterladen“ speichert die Datei.
+
+Das Formular ändert nur, was du änderst; unbekannte Schlüssel bleiben stehen. Schlägt die Rechnung fehl, erscheint die
+Meldung von FourierGrating, und der vermutete Reiter (bzw. die Schicht) zeigt sie ebenfalls an.
+
 ## Einzelrechnung
 
 1. **Quelle** wählen: *Beispiel* (Konfigurationen aus `FG_GUI_EXAMPLES_DIR`, z. B. die Referenzfälle von

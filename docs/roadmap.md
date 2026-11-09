@@ -8,7 +8,7 @@ Reihenfolge wie aufgeführt (AGENTS.md).
   - Hintergrundrechnungen (`JobManager`), Tests ohne Löser, systemd/nginx
   - Abnahme: `pytest` grün (CI); auf dem Server `pytest -m solver` grün, Seite *System* zeigt Kern `cuda12` und die
     RTX 6000 Ada – **auf dem Zielsystem zu bestätigen**
-- [ ] **G1** Konfigurationseditor
+- [x] **G1** Konfigurationseditor (2D-Schichttypen und CAD vorerst als JSON je Schicht)
   - Formulare für Grundeinstellungen (Dimension, Löser, Abbruch, Periode), Einfall (Zahl/Liste/Bereich),
     Materialien (n, [Re, Im], eps, Tensor), Superstrat/Substrat, Schichtliste (homogeneous, lamellar1d, profile1d;
     2D-Typen danach), Löseroptionen (rk, rcwa, backend, precision, threads)
@@ -41,4 +41,6 @@ Reihenfolge wie aufgeführt (AGENTS.md).
 
 Was der GUI fehlt, wird dort ergänzt (AGENTS.md, Abschnitt 1), nicht hier nachgebaut:
 
-- (noch keine)
+- Fehlermeldungen mit Feldpfad (JSON-Pointer, z. B. `/layers/1/materials/1`) in `FourierGratingError`, damit der
+  Editor Fehler am Feld anzeigen kann. Heute enthalten sie nur Quelltextposition und Text (`unknown material 'x'`);
+  `config_form.locate_error` rät über Stichwörter. Negative Schichtdicken werden nicht abgelehnt.
