@@ -193,3 +193,55 @@ def test_cad_example_runs_through_job_and_survives_restart(tmp_path):
     jm.shutdown()
     again = JobManager(workers=1, store=RunStore(root / "runs")).get(job.id)
     assert results.totals(again.result()) == tot
+
+
+@pytest.mark.solver
+def test_littrow_optimization_reproduces_fourier_grating_example():
+    """Abnahme G6: gleiche Konfiguration, Start, Grenzen und Ordnung wie examples/python/optimize_littrow.py."""
+    import numpy as np
+    from scipy.optimize import minimize
+
+    from fg_gui import optimize as opt
+
+    preset = opt.littrow_preset()
+    cfg, spec = preset["config"], preset["spec"]
+    pointers = [p.pointer for p in spec.params]
+    bounds = [(p.lower, p.upper) for p in spec.params]
+
+    # 1) das Beispielskript, unverändert in seiner Logik
+    sim = solver.simulation(cfg)
+    objective = {("R", -1, 0): 1.0}
+
+    def fun(x):
+        for ptr, v in zip(pointers, x, strict=True):
+            sim.set_parameter(ptr, float(v))
+        value, grad = sim.value_and_grad(objective, pointers)
+        return -value, -grad
+
+    ref = minimize(fun, x0=[0.2, 0.3], jac=True, method="L-BFGS-B", bounds=bounds, options={"ftol": 1e-12})
+
+    # 2) die GUI-Optimierung
+    res = opt.run(solver.simulation(cfg), spec)
+    assert res["value"] == pytest.approx(-ref.fun, abs=1e-9)
+    assert [res["x"][p] for p in pointers] == pytest.approx(list(ref.x), abs=1e-6)
+
+    # 3) Rasterscan (gröber als im Beispiel): Optimum >= bester Rasterwert - 1e-3
+    grid_sim = solver.simulation(cfg)
+    best = 0.0
+    for h in np.linspace(*bounds[0], 14):
+        for w in np.linspace(*bounds[1], 16):
+            grid_sim.set_parameter(pointers[0], float(h))
+            grid_sim.set_parameter(pointers[1], float(w))
+            best = max(best, grid_sim.solve().efficiency("R", -1))
+    assert res["value"] >= best - 1e-3
+    assert 0.0 < res["value"] <= 1.0 and res["nfev"] >= 3
+
+    # 4) das Ergebnis lässt sich speichern und nach einem Neustart laden
+    import tempfile
+    from pathlib import Path
+
+    from fg_gui.store import load_result, save_result
+
+    with tempfile.TemporaryDirectory() as d:
+        save_result("optimize", res, Path(d))
+        assert load_result("optimize", Path(d))["x"] == res["x"]

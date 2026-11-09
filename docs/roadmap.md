@@ -30,7 +30,7 @@ Reihenfolge wie aufgeführt (AGENTS.md).
 - [x] **G5** CAD
   - STEP-Upload, `fouriergrating.cad.check` (Prüfcodes, Bänder), Vorschau der Schnitte; Körper → Materialien
   - Abnahme: Beispiel `cad_pillar_array.json` von FourierGrating durchgängig
-- [ ] **G6** Optimierung
+- [x] **G6** Optimierung
   - `Simulation.value_and_grad`: Zielfunktion aus Ordnungen/Gewichten, Parameterwahl per JSON-Pointer,
     L-BFGS-B mit Grenzen, Verlauf live
   - Abnahme: `optimize_littrow.py` von FourierGrating reproduziert

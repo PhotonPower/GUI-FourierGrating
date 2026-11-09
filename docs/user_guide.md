@@ -61,6 +61,26 @@ voraus (Seite *System*: „CAD-Slicer“). Die Seite arbeitet an der Konfigurati
 
 Danach rechnet *Einzelrechnung*, *Scan* oder *Nahfeld* die Konfiguration wie jede andere.
 
+## Optimierung
+
+Maximiert oder minimiert L = Σ wᵢ·eᵢ über die Effizienzen von Beugungsordnungen, indem Zahlen der Konfiguration
+verändert werden. Gradienten: `Simulation.value_and_grad` (diskrete Adjungierte, Aufwand ≈ 1,3–2,5 Vorwärtsrechnungen
+unabhängig von der Parameterzahl); Verfahren: L-BFGS-B mit Grenzen. Gerechnet wird am **ersten Scanpunkt**.
+
+1. **Zielfunktion**: Tabelle aus Seite (R/T), Ordnung n, m und Gewicht; mehrere Zeilen sind erlaubt
+   (z. B. R(−1,0) mit +1 und T(0,0) mit −0,5). **Ziel**: Maximieren oder Minimieren.
+2. **Parameter**: Zahlen der Konfiguration als JSON-Pointer wählen (`/layers/0/thickness_um`,
+   `/layers/0/breakpoints_um/1`, `/materials/al/n/1`, `/incidence/lambda_um` …; was FourierGrating ableitet, steht in
+   dessen `docs/python.md`, Abschnitt „Gradienten“). Je Parameter **Start**, **Untergrenze** und **Obergrenze**; die
+   Vorgabe ±50 % des Werts ist nur ein Platzhalter. Der Start muss innerhalb der Grenzen liegen.
+3. **Optimieren** startet den Job. Der Verlauf erscheint live; **Stoppen** beendet nach der laufenden Auswertung und behält
+   das beste Ergebnis.
+4. **Ergebnis**: Zielwert am Start und am Optimum, Parameter (Start → Optimum), Verlauf (auch als CSV);
+   **Optimum in den Editor übernehmen** schreibt die Werte in die Konfiguration.
+
+Die **Vorlage** „Littrow-Gitter“ lädt das Beispiel `optimize_littrow.py` von FourierGrating (Aluminium, Periode 0,5 µm,
+TM): Tiefe und Stegbreite für die −1. reflektierte Ordnung.
+
 ## Einzelrechnung
 
 1. **Quelle** wählen: *Beispiel* (Konfigurationen aus `FG_GUI_EXAMPLES_DIR`, z. B. die Referenzfälle von

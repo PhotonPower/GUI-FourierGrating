@@ -1,6 +1,7 @@
 """Rauchtests der Seiten mit streamlit.testing (ohne Browser)."""
 
 import json
+import time
 from pathlib import Path
 
 import pytest
@@ -90,9 +91,10 @@ def test_editor_roundtrip_all_fourier_grating_examples(fake_fg, monkeypatch, nam
 
 
 def _wait(at: AppTest, cond) -> None:
-    for _ in range(20):
+    for _ in range(40):
         if cond():
             return
+        time.sleep(0.1)  # Jobs laufen in einem Thread (z. B. scipy-Import beim ersten Mal)
         at.run()
 
 
@@ -253,3 +255,45 @@ def test_cad_page_without_slicer(fake_fg):
     fake_fg.cad.available = lambda: False
     at = _cad_page(json.loads(json.dumps(EXAMPLE)))
     assert any("ohne den CAD-Slicer" in w.value for w in at.warning)
+
+
+# ---------------------------------------------------------------- G6: Optimierung
+def _opt_page_with_preset(fake_fg) -> AppTest:
+    at = _run("editor.py")
+    at.switch_page(str(Path(APP).parent / "pages" / "optimize.py"))
+    at.run()
+    assert not at.exception, at.exception
+    next(b for b in at.button if b.label == "Littrow-Vorlage laden").click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["fg_cfg"]["period_um"] == {"x": 0.5}
+    return at
+
+
+def test_optimize_page_runs_preset_and_applies_result(fake_fg):
+    at = _opt_page_with_preset(fake_fg)
+    assert any(df.value.shape[0] == 2 for df in at.dataframe if "Start" in df.value.columns)  # zwei Parameter
+    next(b for b in at.button if b.label == "Optimieren").click().run()
+    _wait(at, lambda: any(m.label == "Zielwert am Optimum" for m in at.metric))
+    assert not at.exception, at.exception
+    best = next(m for m in at.metric if m.label == "Zielwert am Optimum")
+    assert float(best.value) == pytest.approx(1.0, abs=1e-6)
+    from fg_gui.state import job_manager
+
+    job = job_manager().get(at.session_state["fg_opt_job"])
+    assert job.kind == "optimize" and job.result()["success"]
+    next(b for b in at.button if b.label == "Optimum in den Editor übernehmen").click().run()
+    cfg = at.session_state["fg_cfg"]
+    assert cfg["layers"][0]["thickness_um"] == pytest.approx(0.25, abs=1e-5)
+    assert cfg["layers"][0]["breakpoints_um"][1] == pytest.approx(0.25, abs=1e-5)
+
+
+def test_optimize_page_shows_input_errors(fake_fg):
+    at = _opt_page_with_preset(fake_fg)
+    next(t for t in at.text_input if t.label.startswith("Weitere Pointer")).set_value("/layers/0/nix").run()
+    assert any("keine Zahl" in e.value or "existiert" in e.value for e in at.error)
+
+
+def test_optimize_page_without_config(fake_fg):
+    at = AppTest.from_file(str(Path(APP).parent / "pages" / "optimize.py"), default_timeout=30).run()
+    assert not at.exception, at.exception
+    assert any("Editor" in i.value for i in at.info)

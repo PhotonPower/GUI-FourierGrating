@@ -21,6 +21,7 @@ nav = st.navigation(
             st.Page(PAGES / "scan.py", title="Scan", icon="📈"),
             st.Page(PAGES / "nearfield.py", title="Nahfeld", icon="🔦"),
             st.Page(PAGES / "cad.py", title="CAD", icon="🧊"),
+            st.Page(PAGES / "optimize.py", title="Optimierung", icon="🎯"),
         ],
         "Betrieb": [
             st.Page(PAGES / "jobs.py", title="Rechnungen", icon="📋"),

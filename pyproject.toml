@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fouriergrating-gui"
-version = "0.6.0"
+version = "0.7.0"
 description = "Streamlit-Oberfläche für FourierGrating (Differentialmethode und RCWA)"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -16,6 +16,7 @@ dependencies = [
   "numpy>=1.23",
   "pandas>=1.5",
   "matplotlib>=3.7",
+  "scipy>=1.9",
 ]
 
 [project.optional-dependencies]

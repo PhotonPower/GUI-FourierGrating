@@ -77,6 +77,29 @@ def make_fake_nearfield(two_d: bool = False) -> dict:
     }
 
 
+class FakeSimulation:
+    """Analytische Zielfunktion L = 1 − Σ (x − c)² mit Maximum bei c = 0,25 (Gradient exakt, wie value_and_grad)."""
+
+    CENTER = 0.25
+
+    def __init__(self, cfg):
+        from fg_gui.optimize import get_pointer
+
+        self._cfg, self._get = cfg, get_pointer
+        self.values: dict[str, float] = {}
+        self.calls = 0
+
+    def set_parameter(self, pointer, value):
+        self.values[pointer] = float(value)
+
+    def value_and_grad(self, objective, params):
+        self.calls += 1
+        x = [self.values.get(p, float(self._get(self._cfg, p))) for p in params]
+        w = sum(objective.values())
+        d = [xi - self.CENTER for xi in x]
+        return w * (1.0 - sum(di * di for di in d)), np.array([-2.0 * w * di for di in d])
+
+
 def make_fake_fg(version: str = "0.18.0") -> types.ModuleType:
     fg = types.ModuleType("fouriergrating")
     fg.__version__ = version
@@ -85,6 +108,7 @@ def make_fake_fg(version: str = "0.18.0") -> types.ModuleType:
     fg.get_backend = lambda: {"preference": "auto", "threshold": 1000}
     fg.solve = lambda cfg: FakeResult()
     fg.solve_scan = lambda cfg: FakeScan()
+    fg.Simulation = FakeSimulation
     fg.near_field = lambda cfg: make_fake_nearfield(cfg.get("dimension") == "2D")
     cad = types.ModuleType("fouriergrating.cad")
     cad.available = lambda: True

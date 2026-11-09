@@ -42,6 +42,8 @@ class Job:
     #: Lader für Ergebnisse, die von der Festplatte kommen (nach einem Neustart)
     loader: Callable[[], Any] | None = field(default=None, repr=False)
     _loaded: Any = field(default=None, repr=False)
+    #: Fortschrittsobjekt, das die Rechnung beschreibt und Seiten lesen (nur im Speicher), z. B. ``optimize.History``
+    progress: Any = field(default=None, repr=False)
 
     @property
     def status(self) -> str:
@@ -137,6 +139,7 @@ class JobManager:
         owner: str = "",
         kind: str = "",
         config: dict | None = None,
+        progress: Any = None,
         **kwargs: Any,
     ) -> Job:
         job_id = uuid.uuid4().hex[:12]
@@ -162,7 +165,7 @@ class JobManager:
                 self._persist(job)
 
         with self._lock:
-            job = Job(id=job_id, label=label, owner=owner, submitted=time.time(), kind=kind)
+            job = Job(id=job_id, label=label, owner=owner, submitted=time.time(), kind=kind, progress=progress)
             self._jobs[job_id] = job
             if self.store is not None:
                 try:

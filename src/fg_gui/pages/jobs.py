@@ -103,9 +103,15 @@ if job.status == DONE and job.kind == "scan" and b[3].button("Im Scan öffnen"):
     if job.id not in {r["id"] for r in runs}:
         runs.append({"id": job.id, "title": job.label})
     st.switch_page(PAGES / "scan.py")
+if job.status == DONE and job.kind == "optimize" and b[3].button("In der Optimierung öffnen"):
+    st.session_state["fg_opt_job"] = job.id
+    st.switch_page(PAGES / "optimize.py")
 if job.status == DONE and job.kind == "cad" and b[3].button("Im CAD öffnen"):
     st.session_state["fg_cad_job"] = job.id
     st.switch_page(PAGES / "cad.py")
+if job.status == DONE and job.kind == "optimize" and b[3].button("In der Optimierung öffnen"):
+    st.session_state["fg_opt_job"] = job.id
+    st.switch_page(PAGES / "optimize.py")
 if job.status == DONE and job.kind == "cad" and b[3].button("Im CAD öffnen"):
     st.session_state["fg_cad_job"] = job.id
     st.switch_page(PAGES / "cad.py")

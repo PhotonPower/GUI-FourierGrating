@@ -101,3 +101,15 @@ def cad_check(cfg: dict, extra_heights: tuple[float, ...] = ()) -> dict:
         except Exception as e:
             previews.append({"y_um": y, "svg": "", "error": f"{type(e).__name__}: {e}"})
     return {"report": report, "previews": previews}
+
+
+def simulation(cfg: dict) -> Any:
+    """``fouriergrating.Simulation`` – Schichtmodelle einmal aufbauen (nicht threadsicher: ein Job je Objekt)."""
+    return module().Simulation(cfg)
+
+
+def run_optimization(cfg: dict, spec: Any, history: Any = None) -> dict:
+    """Optimierung (L-BFGS-B) mit den Gradienten von ``Simulation.value_and_grad`` (siehe ``fg_gui.optimize``)."""
+    from . import optimize
+
+    return optimize.run(simulation(cfg), spec, history)

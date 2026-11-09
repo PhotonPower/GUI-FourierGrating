@@ -2,6 +2,21 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.7.0] – 2026-11-09
+
+### Hinzugefügt (G6)
+- Seite *Optimierung*: Zielfunktion L = Σ w·e aus Ordnungen (Seite, n, m, Gewicht), Maximieren oder Minimieren;
+  Parameter als JSON-Pointer (Auswahl aus den Zahlen der Konfiguration oder frei eingegeben) mit Start und Grenzen;
+  L-BFGS-B (`scipy`) mit den Gradienten von `Simulation.value_and_grad`.
+- Verlauf live (Zielwert und bester Wert je Auswertung, |Gradient|); „Stoppen“ beendet nach der laufenden
+  Auswertung und behält das beste Ergebnis; wartende Optimierungen lassen sich abbrechen.
+- Ergebnis gespeichert (Art „Optimierung“): Start, Optimum, Verlauf, Eingaben; Optimum per Knopf in den Editor
+  übernehmen; Verlauf als CSV.
+- Vorlage *Littrow-Gitter* (Konfiguration, Parameter, Grenzen und Ordnung von `optimize_littrow.py`).
+- Module `fg_gui.optimize` (ohne FourierGrating testbar) mit Tests; Abnahme: gleiches Optimum wie das Beispielskript
+  (1e-9) und nicht schlechter als ein Rasterscan − 1e-3.
+- `Job.progress`: Fortschrittsobjekt, das eine Rechnung beschreibt und Seiten lesen. Neue Abhängigkeit: `scipy`.
+
 ## [0.6.0] – 2026-11-09
 
 ### Hinzugefügt (G5)
