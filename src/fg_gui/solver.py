@@ -83,3 +83,21 @@ def solve_scan(cfg: dict) -> Any:
 def near_field(cfg: dict) -> Any:
     """``fouriergrating.near_field`` – Nahfeldschnitte für den ersten Scanpunkt (Block ``nearfield``)."""
     return module().near_field(cfg)
+
+
+def cad_check(cfg: dict, extra_heights: tuple[float, ...] = ()) -> dict:
+    """Geometrieprüfung der CAD-Schichten (``fouriergrating.cad.check``) und Schnittvorschau.
+
+    Vorschau (SVG) je Band in der Bandmitte sowie bei ``extra_heights``; scheitert ein Schnitt, steht die
+    Meldung statt des SVG im Eintrag. Läuft als Job (AGENTS.md, Abschnitt 3).
+    """
+    cad = module().cad
+    report = cad.check(None, cfg)
+    heights = [(b["y0_um"] + b["y1_um"]) / 2 for b in report.get("bands") or []] + [float(y) for y in extra_heights]
+    previews = []
+    for y in heights:
+        try:
+            previews.append({"y_um": y, "svg": str(cad.preview(None, cfg, y))})
+        except Exception as e:
+            previews.append({"y_um": y, "svg": "", "error": f"{type(e).__name__}: {e}"})
+    return {"report": report, "previews": previews}

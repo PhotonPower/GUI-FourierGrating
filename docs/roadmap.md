@@ -27,7 +27,7 @@ Reihenfolge wie aufgeführt (AGENTS.md).
   - Persistenz in `FG_GUI_DATA_DIR` (Konfiguration, Ergebnis, Diagnose, Laufzeit), Liste über Neustarts hinweg
   - Abbruch wartender Jobs, Warteschlange mit Position, Speicherbedarf grob abschätzen und anzeigen
   - Abnahme: Neustart-Test; gleichzeitige Sitzungen
-- [ ] **G5** CAD
+- [x] **G5** CAD
   - STEP-Upload, `fouriergrating.cad.check` (Prüfcodes, Bänder), Vorschau der Schnitte; Körper → Materialien
   - Abnahme: Beispiel `cad_pillar_array.json` von FourierGrating durchgängig
 - [ ] **G6** Optimierung

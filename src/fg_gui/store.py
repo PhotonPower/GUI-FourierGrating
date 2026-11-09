@@ -16,8 +16,14 @@ from typing import Any
 
 import numpy as np
 
-KINDS = ("solve", "scan", "nearfield")
-KIND_LABELS = {"solve": "Einzelrechnung", "scan": "Scan", "nearfield": "Nahfeld", "": "–"}
+KINDS = ("solve", "scan", "nearfield", "cad")
+KIND_LABELS = {
+    "solve": "Einzelrechnung",
+    "scan": "Scan",
+    "nearfield": "Nahfeld",
+    "cad": "CAD-Prüfung",
+    "": "–",
+}
 
 
 def _json_default(o: Any) -> Any:
@@ -77,6 +83,8 @@ def save_result(kind: str, result: Any, directory: Path) -> None:
     elif kind == "scan":
         np.savez_compressed(directory / "columns.npz", **{k: np.asarray(v) for k, v in result.columns.items()})
         _write_json(directory / "scan.json", {"sweep_parameter": getattr(result, "sweep_parameter", "")})
+    elif kind == "cad":
+        _write_json(directory / "cad.json", result)
     elif kind == "nearfield":
         rest: dict[str, Any] = {}
         for name, cut in result.items():
@@ -102,6 +110,8 @@ def load_result(kind: str, directory: Path) -> Any:
             cols = {k: z[k] for k in z.files}
         info = json.loads((directory / "scan.json").read_text(encoding="utf-8"))
         return StoredScan(cols, info.get("sweep_parameter", ""))
+    if kind == "cad":
+        return json.loads((directory / "cad.json").read_text(encoding="utf-8"))
     if kind == "nearfield":
         out = json.loads((directory / "nearfield.json").read_text(encoding="utf-8"))
         for name, cut in out.items():
@@ -142,7 +152,7 @@ class RunStore:
         save_result(kind, result, d)
 
     def has_result(self, run_id: str, kind: str) -> bool:
-        names = {"solve": "result.npz", "scan": "columns.npz", "nearfield": "nearfield.json"}
+        names = {"solve": "result.npz", "scan": "columns.npz", "nearfield": "nearfield.json", "cad": "cad.json"}
         return kind in names and (self.path(run_id) / names[kind]).is_file()
 
     def load_result(self, run_id: str, kind: str) -> Any:

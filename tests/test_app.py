@@ -175,3 +175,81 @@ def test_jobs_page_survives_restart_and_other_session(fake_fg):
     other.toggle[0].set_value(False).run()  # „Nur diese Sitzung“ aus
     assert not other.exception, other.exception
     assert any(o.startswith(job_id) and "fertig" in o for o in other.selectbox[0].options)
+
+
+# ---------------------------------------------------------------- G5: CAD
+def _cad_cfg(file: str, bodies=None) -> dict:
+    cfg = json.loads(json.dumps(EXAMPLE))
+    cfg["layers"] = [
+        {"type": "cad", "file": file, "unit": "auto", "axes": {"y": "+Z", "x": "+X"}, "bodies": bodies or []}
+    ]
+    return cfg
+
+
+def _cad_page(cfg: dict) -> AppTest:
+    at = _run("editor.py")
+    at.session_state["fg_cfg"] = cfg
+    at.session_state["fg_cfg_name"] = "datei:x"
+    at.switch_page(str(Path(APP).parent / "pages" / "cad.py"))
+    at.run()
+    assert not at.exception, at.exception
+    return at
+
+
+def test_cad_page_without_cad_layer_offers_to_add(fake_fg):
+    at = _cad_page(json.loads(json.dumps(EXAMPLE)))
+    assert any(b.label == "CAD-Schicht hinzufügen" for b in at.button)
+    next(b for b in at.button if b.label == "CAD-Schicht hinzufügen").click().run()
+    assert [L["type"] for L in at.session_state["fg_cfg"]["layers"]][-1] == "cad"
+
+
+def test_cad_page_check_shows_findings_bands_and_preview(fake_fg, tmp_path, monkeypatch):
+    from conftest import FAKE_STEP
+    from fg_gui import cad
+
+    monkeypatch.setenv("FG_GUI_DATA_DIR", str(tmp_path / "data"))
+    step = cad.save_upload(FAKE_STEP.encode(), tmp_path / "data" / "uploads")
+    at = _cad_page(_cad_cfg(str(step), [{"name": "Pillar", "material": "bar"}]))
+    assert any("Pillar" in c.value for c in at.caption)  # Körper aus der Datei gelesen
+    next(b for b in at.button if b.label == "Prüfen").click().run()
+    _wait(at, lambda: at.success)
+    assert not at.exception, at.exception
+    assert at.success and "in Ordnung" in at.success[0].value
+    assert len(at.dataframe) >= 2  # Befunde (Warnung) und Bänder
+    assert any(s.label.startswith("Höhe y") for s in at.selectbox)
+    # die Prüfung ist ein gespeicherter Job der Art „cad“
+    from fg_gui.state import job_manager
+
+    job = job_manager().get(at.session_state["fg_cad_job"])
+    assert job.kind == "cad" and job.result()["previews"][0]["y_um"] == pytest.approx(0.1)
+
+
+def test_cad_page_reports_errors(fake_fg, tmp_path, monkeypatch):
+    from conftest import FAKE_STEP
+    from fg_gui import cad
+
+    monkeypatch.setenv("FG_GUI_DATA_DIR", str(tmp_path / "data"))
+    step = cad.save_upload(FAKE_STEP.encode(), tmp_path / "data" / "uploads")
+    at = _cad_page(_cad_cfg(str(step)))  # keine Zuordnung → BODY_UNASSIGNED
+    next(b for b in at.button if b.label == "Prüfen").click().run()
+    _wait(at, lambda: at.error)
+    assert any("Fehler" in e.value for e in at.error)
+
+
+def test_files_outside_allowed_directories_are_refused(fake_fg, tmp_path, monkeypatch):
+    outside = tmp_path / "geheim.step"
+    outside.write_text("ISO-10303-21;")
+    monkeypatch.setenv("FG_GUI_DATA_DIR", str(tmp_path / "data"))
+    at = _run("editor.py")
+    at.session_state["fg_cfg"] = _cad_cfg(str(outside))
+    at.session_state["fg_cfg_name"] = "datei:x"
+    at.run()
+    next(b for b in at.button if b.label == "Rechnen").click().run()
+    assert any("außerhalb der erlaubten Verzeichnisse" in e.value for e in at.error)
+    assert "fg_editor_job" not in at.session_state
+
+
+def test_cad_page_without_slicer(fake_fg):
+    fake_fg.cad.available = lambda: False
+    at = _cad_page(json.loads(json.dumps(EXAMPLE)))
+    assert any("ohne den CAD-Slicer" in w.value for w in at.warning)

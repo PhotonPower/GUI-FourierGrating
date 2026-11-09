@@ -143,3 +143,53 @@ def test_runs_survive_restart_with_real_solver(tmp_path):
     after = results.totals(again.result())
     assert after == before and np.isclose(after["ΣR"] + after["ΣT"], 1.0, atol=1e-10)
     jm2.shutdown()
+
+
+def _cad_example():
+    import json
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[2] / "FourierGrating" / "examples" / "cad_pillar_array.json"
+    if not path.is_file() or not solver.info().cad_available:
+        pytest.skip("CAD-Beispiel oder CAD-Slicer nicht vorhanden")
+    cfg = json.loads(path.read_text())
+    cfg["layers"][0]["file"] = str(path.parent / cfg["layers"][0]["file"])
+    return cfg
+
+
+@pytest.mark.solver
+def test_cad_check_with_real_slicer():
+    from fg_gui import cad
+
+    cfg = _cad_example()
+    out = solver.cad_check(cfg, extra_heights=(0.05,))
+    assert out["report"]["ok"] and not out["report"]["errors"]
+    assert [b["kind"] for b in out["report"]["bands"]] == ["sectioned", "extrusion"]
+    assert len(out["previews"]) == 3 and all(p["svg"].startswith("<svg") for p in out["previews"])
+    assert cad.band_heights(out["report"]) == [p["y_um"] for p in out["previews"][:2]]
+    # Körper ohne Material: genau der Prüfcode von FourierGrating erscheint in den Befunden
+    cfg["layers"][0]["bodies"] = [{"name": "Pillar", "material": "si"}]
+    rows = cad.findings_rows(solver.cad_check(cfg)["report"])
+    assert [r["Code"] for r in rows] == ["BODY_UNASSIGNED"] and rows[0]["Stufe"] == "Fehler"
+
+
+@pytest.mark.solver
+def test_cad_example_runs_through_job_and_survives_restart(tmp_path):
+    from fg_gui import results
+    from fg_gui.cad import resolve_files
+    from fg_gui.jobs import DONE, JobManager
+    from fg_gui.store import RunStore
+
+    cfg = _cad_example()
+    root = tmp_path  # Dateischutz: Beispielordner als erlaubtes Verzeichnis
+    examples = __import__("pathlib").Path(cfg["layers"][0]["file"]).parent.parent
+    prepared = resolve_files(cfg, [examples], [examples])
+    jm = JobManager(workers=1, store=RunStore(root / "runs"))
+    job = jm.submit("cad", solver.solve, prepared, kind="solve", config=prepared)
+    job.future.result()
+    assert job.status == DONE
+    tot = results.totals(job.result())
+    assert 0.0 < tot["ΣR"] + tot["ΣT"] <= 1.0 + 1e-6  # verlustbehaftetes Silizium
+    jm.shutdown()
+    again = JobManager(workers=1, store=RunStore(root / "runs")).get(job.id)
+    assert results.totals(again.result()) == tot

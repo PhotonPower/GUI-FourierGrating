@@ -9,9 +9,9 @@ import uuid
 
 import streamlit as st
 
+from . import cad, solver
 from . import settings as _settings
-from . import solver
-from .jobs import JobManager
+from .jobs import Job, JobManager
 from .store import RunStore
 
 
@@ -46,3 +46,20 @@ def open_in_editor(cfg: dict, name: str) -> None:
     st.session_state["fg_editor_source"] = "Neu"  # sonst lädt eine gewählte Beispielquelle ihre Datei erneut
     st.session_state["fg_gen"] = st.session_state.get("fg_gen", 0) + 1
     st.session_state.pop("fg_editor_error", None)
+
+
+def uploads_dir():
+    """Hochgeladene STEP-Dateien liegen unter ``FG_GUI_DATA_DIR/uploads``."""
+    return settings().data_dir / "uploads"
+
+
+def submit_job(label: str, fn, cfg: dict, *, kind: str, **kwargs) -> Job:
+    """Reicht eine Rechnung für ``cfg`` ein. CAD-Dateien dürfen nur aus Uploads oder dem Beispielverzeichnis kommen.
+
+    Wirft ``cad.CadFileError``, wenn eine Datei fehlt oder außerhalb liegt. Gerechnet und gespeichert wird die
+    Konfiguration mit aufgelösten absoluten Pfaden.
+    """
+    s = settings()
+    roots = [uploads_dir()] + ([s.examples_dir] if s.examples_dir else [])
+    prepared = cad.resolve_files(cfg, bases=roots, roots=roots)
+    return job_manager().submit(label, fn, prepared, owner=session_id(), kind=kind, config=prepared, **kwargs)

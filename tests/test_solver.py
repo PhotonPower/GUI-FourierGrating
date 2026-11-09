@@ -17,7 +17,7 @@ def test_info_without_package(no_fg):
 
 def test_info_with_package(fake_fg):
     info = solver.info()
-    assert info.available and info.version_ok and info.core_variant == "cpu" and not info.cad_available
+    assert info.available and info.version_ok and info.core_variant == "cpu" and info.cad_available
 
 
 def test_info_old_version(monkeypatch):

@@ -3,8 +3,9 @@
 import streamlit as st
 
 from fg_gui import config_io, results, solver
+from fg_gui.cad import CadFileError
 from fg_gui.jobs import DONE, FAILED
-from fg_gui.state import job_manager, session_id, settings, solver_info
+from fg_gui.state import job_manager, settings, solver_info, submit_job
 
 st.title("Einzelrechnung")
 st.caption(
@@ -46,8 +47,10 @@ if not info.available:
     st.stop()
 
 if st.button("Rechnen", type="primary"):
-    job = job_manager().submit(name or "Konfiguration", solver.solve, cfg, owner=session_id(), kind="solve", config=cfg)
-    st.session_state["fg_single_job"] = job.id
+    try:
+        st.session_state["fg_single_job"] = submit_job(name or "Konfiguration", solver.solve, cfg, kind="solve").id
+    except CadFileError as e:
+        st.error(str(e))
 
 
 def show_result(job) -> None:

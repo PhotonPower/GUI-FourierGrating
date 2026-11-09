@@ -4,8 +4,9 @@ import streamlit as st
 
 from fg_gui import config_form as cf
 from fg_gui import config_io, nearfield, solver
+from fg_gui.cad import CadFileError
 from fg_gui.jobs import DONE, FAILED
-from fg_gui.state import job_manager, session_id, solver_info
+from fg_gui.state import job_manager, solver_info, submit_job
 from fg_gui.widgets import choice, integer, number, text_list
 
 st.title("Nahfeld")
@@ -57,10 +58,10 @@ if not info.available:
 if isinstance(block, dict) and st.button("Nahfeld rechnen", type="primary"):
     snapshot = config_io.parse(config_io.dumps(cfg))  # Kopie
     snapshot["nearfield"]["enabled"] = True  # die Seite verlangt das Nahfeld ausdrücklich
-    job = job_manager().submit(
-        f"Nahfeld: {name}", solver.near_field, snapshot, owner=session_id(), kind="nearfield", config=snapshot
-    )
-    st.session_state["fg_nf_job"] = job.id
+    try:
+        st.session_state["fg_nf_job"] = submit_job(f"Nahfeld: {name}", solver.near_field, snapshot, kind="nearfield").id
+    except CadFileError as e:
+        st.error(str(e))
 
 
 @st.fragment(run_every=1.0)

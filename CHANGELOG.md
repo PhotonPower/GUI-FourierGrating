@@ -2,6 +2,20 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.6.0] – 2026-11-09
+
+### Hinzugefügt (G5)
+- Seite *CAD*: STEP-Datei hochladen (`FG_GUI_DATA_DIR/uploads/<hash>.step`) oder aus dem Beispielverzeichnis wählen,
+  Körper der Datei lesen und Materialien zuordnen (Tabelle), Einstellungen der `cad`-Schicht (Einheit, Achsen,
+  y-Bereich, Zellursprung, Hintergrund, Überlappung, Slicing, Normalenfeld).
+- Prüfung mit `fouriergrating.cad.check` als Hintergrundjob (Art „CAD-Prüfung“, gespeichert): Befunde mit Code,
+  Bedeutung und Ort, Bänder mit Flächenanteilen, Schnittvorschau (SVG) je Band und bei frei wählbaren Höhen.
+- Dateischutz: CAD-Dateien dürfen nur aus `uploads/` oder dem Beispielverzeichnis kommen (relative Pfade werden
+  dort aufgelöst, `..` und Symlinks hinaus werden abgewiesen); gilt für alle Rechnungen (`state.submit_job`).
+- Seite *Rechnungen*: „Im CAD öffnen“.
+- Module `fg_gui.cad` (ohne Streamlit) mit Tests; Abnahme mit `cad_pillar_array.json` von FourierGrating
+  (Prüfung, Rechnung, Neustart).
+
 ## [0.5.0] – 2026-11-09
 
 ### Hinzugefügt (G4)

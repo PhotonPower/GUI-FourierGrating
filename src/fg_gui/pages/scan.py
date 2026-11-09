@@ -3,8 +3,9 @@
 import streamlit as st
 
 from fg_gui import config_io, scans, solver
+from fg_gui.cad import CadFileError
 from fg_gui.jobs import DONE, FAILED
-from fg_gui.state import job_manager, session_id, solver_info
+from fg_gui.state import job_manager, solver_info, submit_job
 from fg_gui.widgets import show_estimate
 
 st.title("Scan")
@@ -30,8 +31,11 @@ show_estimate(cfg)
 if st.button("Scan rechnen", type="primary"):
     snapshot = config_io.parse(config_io.dumps(cfg))  # Kopie: Bearbeiten im Editor ändert den Lauf nicht
     title = f"Scan {len(runs) + 1}: {name}"
-    job = job_manager().submit(title, solver.solve_scan, snapshot, owner=session_id(), kind="scan", config=snapshot)
-    runs.append({"id": job.id, "title": title})
+    try:
+        job = submit_job(title, solver.solve_scan, snapshot, kind="scan")
+        runs.append({"id": job.id, "title": title})
+    except CadFileError as e:
+        st.error(str(e))
 
 
 @st.fragment(run_every=1.0)

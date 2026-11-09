@@ -8,8 +8,9 @@ import streamlit as st
 
 from fg_gui import config_form as cf
 from fg_gui import config_io, results, solver
+from fg_gui.cad import CadFileError
 from fg_gui.jobs import DONE, FAILED
-from fg_gui.state import job_manager, session_id, settings, solver_info
+from fg_gui.state import job_manager, settings, solver_info, submit_job
 from fg_gui.widgets import choice, complex_input, integer, number, show_estimate, text_list
 
 st.title("Editor")
@@ -331,11 +332,13 @@ if not info.available:
 show_estimate(cfg)
 if st.button("Rechnen", type="primary"):
     snapshot = config_io.parse(config_io.dumps(cfg))  # Kopie: Bearbeiten während der Rechnung ändert sie nicht
-    job = job_manager().submit(
-        label or "Konfiguration", solver.solve, snapshot, owner=session_id(), kind="solve", config=snapshot
-    )
-    st.session_state["fg_editor_job"] = job.id
-    st.session_state.pop("fg_editor_error", None)
+    try:
+        st.session_state["fg_editor_job"] = submit_job(
+            label or "Konfiguration", solver.solve, snapshot, kind="solve"
+        ).id
+        st.session_state.pop("fg_editor_error", None)
+    except CadFileError as e:
+        st.error(str(e))
 
 
 def show_result(job) -> None:

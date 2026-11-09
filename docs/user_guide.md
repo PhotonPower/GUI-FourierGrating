@@ -44,6 +44,23 @@ Feldschnitte für den **ersten Scanpunkt** der Konfiguration aus dem *Editor*.
 4. **Alle Schnitte (.zip)** enthält `nearfield_horizontal/` und `nearfield_vertical/` wie `fgsolve`
    (`<Größe>.npy`, `material.npy`, `meta.json`); `scripts/plot_nearfield.py` aus FourierGrating liest sie.
 
+## CAD
+
+Für Schichten vom Typ `cad` (STEP-Körper, FourierGrating `docs/cad.md`); setzt einen FourierGrating-Build mit CAD-Slicer
+voraus (Seite *System*: „CAD-Slicer“). Die Seite arbeitet an der Konfiguration aus dem *Editor*.
+
+1. **CAD-Schicht**: fehlt sie, legt ein Knopf eine an.
+2. **STEP-Datei**: hochladen (.step/.stp) oder ein Beispiel aus `FG_GUI_EXAMPLES_DIR` verwenden. Hochgeladene Dateien
+   liegen unter `FG_GUI_DATA_DIR/uploads/`. Aus anderen Verzeichnissen liest die GUI nicht.
+3. **Körper → Material**: die Namen der Körper werden aus der Datei gelesen; jedem ein Material zuordnen (ein
+   benannter Körper je Material). Weitere Einstellungen: Einheit, Achsen (CAD-Achse für y = Stapelrichtung und x),
+   y-Bereich, Zellursprung, Hintergrundmaterial, Überlappung, Zerlegung in Bänder, Normalenfeld.
+4. **Prüfen** startet `fouriergrating.cad.check` als Job und zeigt Befunde (Code, Meldung, Ort in µm), die Bänder
+   (von unten nach oben, mit Flächenanteilen) und die **Schnittvorschau** je Band (Bandmitte) oder bei einer
+   eigenen Höhe.
+
+Danach rechnet *Einzelrechnung*, *Scan* oder *Nahfeld* die Konfiguration wie jede andere.
+
 ## Einzelrechnung
 
 1. **Quelle** wählen: *Beispiel* (Konfigurationen aus `FG_GUI_EXAMPLES_DIR`, z. B. die Referenzfälle von

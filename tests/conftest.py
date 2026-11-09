@@ -87,7 +87,28 @@ def make_fake_fg(version: str = "0.18.0") -> types.ModuleType:
     fg.solve_scan = lambda cfg: FakeScan()
     fg.near_field = lambda cfg: make_fake_nearfield(cfg.get("dimension") == "2D")
     cad = types.ModuleType("fouriergrating.cad")
-    cad.available = lambda: False
+    cad.available = lambda: True
+
+    def check(step, cfg):
+        layers = [L for L in cfg.get("layers", []) if L.get("type") == "cad"]
+        if not layers or not layers[0].get("bodies"):
+            err = {
+                "code": "BODY_UNASSIGNED",
+                "message": "body 0 ('Pillar') has no material",
+                "where_um": [0.25, 0.1, 0],
+            }
+            return {"ok": False, "errors": [err], "warnings": [], "bands": []}
+        warn = {"code": "FEATURE_SMALL", "message": "band thin", "where_um": [0.1, 0.2, 0.3]}
+        bands = [
+            {"y0_um": 0.0, "y1_um": 0.2, "kind": "sectioned", "area_fractions": {"air": 0.8, "si": 0.2}},
+            {"y0_um": 0.2, "y1_um": 0.26, "kind": "extrusion", "area_fractions": {"air": 0.85, "sio2": 0.15}},
+        ]
+        return {"ok": True, "errors": [], "warnings": [warn], "bands": bands}
+
+    cad.check = check
+    cad.preview = lambda step, cfg, y: (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><title>{y}</title></svg>'
+    )
     fg.cad = cad
     return fg
 
@@ -143,3 +164,11 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "solver" in item.keywords:
             item.add_marker(skip)
+
+
+#: kleinster brauchbarer STEP-Text für Tests (nur Kopf und zwei benannte Körper)
+FAKE_STEP = (
+    "ISO-10303-21;\nHEADER;\nENDSEC;\nDATA;\n"
+    "#1=CLOSED_SHELL('Pillar',(#2));\n#3=MANIFOLD_SOLID_BREP('Pillar',#1);\n"
+    "#4=CLOSED_SHELL('Lid',(#5));\n#6=MANIFOLD_SOLID_BREP('Lid',#4);\n#7=MANIFOLD_SOLID_BREP('',#4);\nENDSEC;\nEND-ISO-10303-21;\n"
+)
