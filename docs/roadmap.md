@@ -15,7 +15,7 @@ Reihenfolge wie aufgeführt (AGENTS.md).
   - JSON-Ansicht mit direkter Bearbeitung; Download/Upload; Konfiguration → Formular → Konfiguration verlustfrei
     (unbekannte Schlüssel bleiben erhalten)
   - Abnahme: Roundtrip-Tests über alle Beispiele von FourierGrating; Fehler von FourierGrating erscheinen am Feld
-- [ ] **G2** Scans und Sweeps
+- [x] **G2** Scans und Sweeps
   - `solve_scan`, Spektren/Winkelgänge je Ordnung, Sweep-Kurven, Mehrfachauswahl von Ordnungen und Polarisation
   - Export wie `efficiencies.csv`; Vergleich mehrerer Rechnungen in einem Diagramm
   - Abnahme: Spalten identisch zu `ScanResult.columns`; Diagrammdaten-Test

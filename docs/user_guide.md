@@ -19,6 +19,18 @@ Startseite zum Bearbeiten und Rechnen. **Quelle**: *Neu* (1D-Lamellengitter als 
 Das Formular ändert nur, was du änderst; unbekannte Schlüssel bleiben stehen. Schlägt die Rechnung fehl, erscheint die
 Meldung von FourierGrating, und der vermutete Reiter (bzw. die Schicht) zeigt sie ebenfalls an.
 
+## Scan
+
+Rechnet die Konfiguration aus dem *Editor* vollständig: alle Werte von λ, φ, ψ, δ (Liste oder Bereich im Reiter
+*Einfall*) und den `sweep`-Block (Reiter *JSON*). Mit **Scan rechnen** startet ein Hintergrundjob; jeder Lauf bleibt
+in der Sitzung und lässt sich auswählen.
+
+* **x-Achse**: eine Größe, die im Scan mehrere Werte hat. Die übrigen veränderlichen Größen hältst du fest.
+* **Ordnungen** `R(n,m)`, `T(n,m)` und **Summen** ΣR, ΣT; **Größe** gesamt, s (TE) oder p (TM). Eine Ordnung, die bei
+  einem Wert nicht propagiert, steht als 0.
+* **Vergleichen mit**: weitere Läufe derselben Sitzung im selben Diagramm (gleiche x-Achse).
+* **efficiencies.csv**: alle Zeilen; bei einem Sweep stehen `sweep_parameter` und `sweep_value` vorn.
+
 ## Einzelrechnung
 
 1. **Quelle** wählen: *Beispiel* (Konfigurationen aus `FG_GUI_EXAMPLES_DIR`, z. B. die Referenzfälle von

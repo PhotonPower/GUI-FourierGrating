@@ -26,6 +26,26 @@ class FakeResult:
         self.diagnostics = {"energy_balance": 1.0, "warnings": []}
 
 
+class FakeScan:
+    """Zwei Wellenlängen × zwei Winkel, je R(0,0) und T(0,0) – Spalten wie ``ScanResult.columns``."""
+
+    def __init__(self, sweep_parameter: str = ""):
+        self.sweep_parameter = sweep_parameter
+        rows = []
+        for lam in (0.5, 0.6):
+            for phi in (0.0, 10.0):
+                r = 0.1 + lam * 0.1 + phi * 0.001
+                rows.append((0.0, lam, phi, 0.0, 0.0, "R", 0, 0, r, 0.0, r, 0j, 0j))
+                rows.append((0.0, lam, phi, 0.0, 0.0, "T", 0, 0, 1 - r, 0.0, 1 - r, 0j, 0j))
+                if phi > 0:  # R(-1,0) propagiert nur bei schrägem Einfall
+                    rows.append((0.0, lam, phi, 0.0, 0.0, "R", -1, 0, 0.01, 0.0, 0.01, 0j, 0j))
+        keys = ["sweep_value", "lambda_um", "phi_deg", "psi_deg", "delta_deg", "side", "n", "m", "efficiency"]
+        keys += ["eff_s", "eff_p", "amp_s", "amp_p"]
+        dtypes = {"side": "U1", "n": "i4", "m": "i4", "amp_s": "c16", "amp_p": "c16"}
+        self.columns = {k: np.asarray([r[i] for r in rows], dtype=dtypes.get(k, "f8")) for i, k in enumerate(keys)}
+        self.points = [FakeResult() for _ in range(4)]
+
+
 def make_fake_fg(version: str = "0.18.0") -> types.ModuleType:
     fg = types.ModuleType("fouriergrating")
     fg.__version__ = version
@@ -33,6 +53,7 @@ def make_fake_fg(version: str = "0.18.0") -> types.ModuleType:
     fg.cuda_available = lambda: False
     fg.get_backend = lambda: {"preference": "auto", "threshold": 1000}
     fg.solve = lambda cfg: FakeResult()
+    fg.solve_scan = lambda cfg: FakeScan()
     cad = types.ModuleType("fouriergrating.cad")
     cad.available = lambda: False
     fg.cad = cad

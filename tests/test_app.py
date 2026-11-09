@@ -87,3 +87,35 @@ def test_editor_roundtrip_all_fourier_grating_examples(fake_fg, monkeypatch, nam
     expected = json.loads((EXAMPLES / name).read_text(encoding="utf-8-sig"))
     at = _editor(monkeypatch, EXAMPLES, name)
     assert at.session_state["fg_cfg"] == expected
+
+
+def _wait(at: AppTest, cond) -> None:
+    for _ in range(20):
+        if cond():
+            return
+        at.run()
+
+
+def test_scan_page_without_config(fake_fg):
+    at = AppTest.from_file(str(Path(APP).parent / "pages" / "scan.py"), default_timeout=30).run()
+    assert not at.exception, at.exception
+    assert any("Editor" in i.value for i in at.info)
+
+
+def test_scan_compare_runs(fake_fg):
+    from fg_gui import config_form
+
+    at = _run("editor.py")  # legt die Vorlage an
+    at.switch_page(str(Path(APP).parent / "pages" / "scan.py"))
+    at.run()
+    at.button[0].click().run()
+    _wait(at, lambda: at.success)
+    assert at.success and "fertig" in at.success[0].value
+    assert at.session_state["fg_cfg"] == config_form.default_config()
+    # x-Achse und Kurve vorhanden; zweiter Lauf → Vergleich möglich
+    at.button[0].click().run()
+    _wait(at, lambda: len(at.session_state["fg_scan_runs"]) == 2 and not at.info)
+    _wait(at, lambda: any(m.label == "Vergleichen mit" for m in at.multiselect))
+    cmp_ = next(m for m in at.multiselect if m.label == "Vergleichen mit")
+    cmp_.select(cmp_.options[0]).run()
+    assert not at.exception, at.exception

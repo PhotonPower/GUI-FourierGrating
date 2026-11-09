@@ -18,6 +18,7 @@ nav = st.navigation(
         "Rechnen": [
             st.Page(PAGES / "editor.py", title="Editor", icon="✏️", default=True),
             st.Page(PAGES / "single.py", title="Einzelrechnung", icon="▶️"),
+            st.Page(PAGES / "scan.py", title="Scan", icon="📈"),
         ],
         "Betrieb": [
             st.Page(PAGES / "jobs.py", title="Rechnungen", icon="📋"),

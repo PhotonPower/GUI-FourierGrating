@@ -73,3 +73,8 @@ def info() -> SolverInfo:
 def solve(cfg: dict) -> Any:
     """``fouriergrating.solve`` – erster Scanpunkt der Konfiguration (``fg.Result``)."""
     return module().solve(cfg)
+
+
+def solve_scan(cfg: dict) -> Any:
+    """``fouriergrating.solve_scan`` – alle Sweep-Werte und Scanpunkte (``fg.ScanResult``)."""
+    return module().solve_scan(cfg)

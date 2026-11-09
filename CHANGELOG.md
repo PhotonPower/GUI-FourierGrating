@@ -2,6 +2,17 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.3.0] – 2026-11-09
+
+### Hinzugefügt (G2)
+- Seite *Scan*: `fouriergrating.solve_scan` für die Konfiguration aus dem Editor (alle Werte von λ, φ, ψ, δ und Sweep)
+  als Hintergrundrechnung; mehrere Läufe je Sitzung.
+- Kurven über eine wählbare x-Achse (λ, φ, ψ, δ, Sweep-Wert), Mehrfachauswahl von Ordnungen, Größe (gesamt, s, p),
+  Summen ΣR/ΣT; übrige veränderliche Achsen werden festgehalten. Nicht propagierende Ordnungen zählen 0.
+- Vergleich mehrerer Läufe in einem Diagramm; Tabelle mit den Spalten von `ScanResult.columns`.
+- Export `efficiencies.csv` (Sweep-Spalten vorn, Amplituden als Re/Im).
+- Modul `fg_gui.scans` (Umformung ohne Streamlit) mit Tests; Abnahmetests mit echtem Löser.
+
 ## [0.2.0] – 2026-11-09
 
 ### Hinzugefügt (G1)

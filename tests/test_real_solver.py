@@ -26,3 +26,40 @@ def test_editor_template_solves_and_error_is_located():
     with pytest.raises(Exception) as e:
         solver.solve(cfg)
     assert config_form.locate_error(str(e.value), cfg) == ("layers", 0)
+
+
+@pytest.mark.solver
+def test_scan_columns_and_curves_with_real_solver():
+    import copy
+
+    import numpy as np
+
+    from fg_gui import scans
+
+    cfg = copy.deepcopy(EXAMPLE)
+    cfg["incidence"]["lambda_um"] = {"from": 0.5, "to": 0.7, "steps": 3}
+    scan = solver.solve_scan(cfg)
+    frame = scans.scan_frame(scan)
+    assert list(frame.columns) == list(scan.columns)
+    assert scans.varying_axes(frame) == ["lambda_um"]
+    curve = scans.curves(frame, "lambda_um", ["R(0,0)", "T(0,0)"])
+    assert len(curve) == 3
+    # verlustfrei: ΣR + ΣT = 1 an jedem Punkt
+    sums = scans.curves(frame, "lambda_um", [], sums=("ΣR", "ΣT"))
+    assert np.allclose(sums["ΣR"] + sums["ΣT"], 1.0, atol=1e-10)
+    assert scans.to_csv(frame, scan.sweep_parameter).startswith(b"lambda_um")
+
+
+@pytest.mark.solver
+def test_sweep_example():
+    from pathlib import Path
+
+    from fg_gui import config_io, scans
+
+    path = Path(__file__).resolve().parents[2] / "FourierGrating" / "examples" / "sweep_lamellar_depth.json"
+    if not path.is_file():
+        pytest.skip("Beispiel nicht vorhanden")
+    scan = solver.solve_scan(config_io.parse(path.read_bytes()))
+    frame = scans.scan_frame(scan)
+    assert "sweep_value" in scans.varying_axes(frame)
+    assert scans.csv_frame(frame, scan.sweep_parameter).columns[0] == "sweep_parameter"
