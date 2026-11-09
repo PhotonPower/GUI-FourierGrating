@@ -121,6 +121,12 @@ EXAMPLE = {
 
 
 @pytest.fixture(autouse=True)
+def _data_dir(tmp_path, monkeypatch):
+    """Laufzeitdaten (gespeicherte Rechnungen) je Test in einem eigenen Verzeichnis, nie im Repository."""
+    monkeypatch.setenv("FG_GUI_DATA_DIR", str(tmp_path / "data"))
+
+
+@pytest.fixture(autouse=True)
 def _clear_streamlit_caches():
     """Einstellungen, Jobverwaltung und Löserinfo sind prozessweit gecacht; jeder Test beginnt frisch."""
     import streamlit as st

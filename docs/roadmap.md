@@ -23,7 +23,7 @@ Reihenfolge wie aufgeführt (AGENTS.md).
   - `near_field`: horizontale und vertikale Schnitte, Größen (|E|², Komponenten, Poynting), Materialgrenzen als Kontur
   - Export `.npy`/`meta.json` wie `fgsolve`
   - Abnahme: Achsen und Felder unverändert durchgereicht (Test mit Ersatzdaten), Vergleich mit `plot_nearfield.py`
-- [ ] **G4** Rechnungsverwaltung
+- [x] **G4** Rechnungsverwaltung
   - Persistenz in `FG_GUI_DATA_DIR` (Konfiguration, Ergebnis, Diagnose, Laufzeit), Liste über Neustarts hinweg
   - Abbruch wartender Jobs, Warteschlange mit Position, Speicherbedarf grob abschätzen und anzeigen
   - Abnahme: Neustart-Test; gleichzeitige Sitzungen

@@ -12,6 +12,7 @@ import streamlit as st
 from . import settings as _settings
 from . import solver
 from .jobs import JobManager
+from .store import RunStore
 
 
 @st.cache_resource
@@ -22,7 +23,7 @@ def settings() -> _settings.Settings:
 @st.cache_resource
 def job_manager() -> JobManager:
     s = settings()
-    return JobManager(workers=s.workers, history=s.job_history)
+    return JobManager(workers=s.workers, history=s.job_history, store=RunStore(s.data_dir / "runs"))
 
 
 @st.cache_data(ttl=60)
@@ -35,3 +36,13 @@ def session_id() -> str:
     if "fg_session" not in st.session_state:
         st.session_state["fg_session"] = uuid.uuid4().hex[:8]
     return st.session_state["fg_session"]
+
+
+def open_in_editor(cfg: dict, name: str) -> None:
+    """Konfiguration (z. B. einer früheren Rechnung) in den Editor übernehmen; Felder beginnen neu."""
+    st.session_state["fg_cfg"] = cfg
+    st.session_state["fg_cfg_name"] = f"rechnung:{name}"
+    st.session_state["fg_cfg_label"] = name
+    st.session_state["fg_editor_source"] = "Neu"  # sonst lädt eine gewählte Beispielquelle ihre Datei erneut
+    st.session_state["fg_gen"] = st.session_state.get("fg_gen", 0) + 1
+    st.session_state.pop("fg_editor_error", None)

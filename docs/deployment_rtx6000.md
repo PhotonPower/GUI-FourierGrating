@@ -58,7 +58,7 @@ Wichtige Variablen in `/etc/fg-gui/fg-gui.env`:
 | `FG_GUI_DATA_DIR` | Laufzeitdaten | `data` (Dienst: `/var/lib/fg-gui`) |
 | `FG_GUI_EXAMPLES_DIR` | Beispielkonfigurationen | – (Dienst: `FourierGrating/examples`) |
 | `FG_GUI_WORKERS` | gleichzeitige Rechnungen | 1 |
-| `FG_GUI_JOB_HISTORY` | Rechnungen im Speicher | 50 |
+| `FG_GUI_JOB_HISTORY` | Rechnungen im Speicher; ohne Datenverzeichnis-Speicher relevant (mit Speicher bleibt alles erhalten, Aufräumen: G7) | 50 |
 | `FG_NUM_THREADS`, `FG_CORE`, `FG_PRECISION`, `FG_GPU_STREAMS` | an FourierGrating | siehe dort |
 
 ## 5. Zugriff

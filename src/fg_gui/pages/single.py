@@ -46,7 +46,7 @@ if not info.available:
     st.stop()
 
 if st.button("Rechnen", type="primary"):
-    job = job_manager().submit(name or "Konfiguration", solver.solve, cfg, owner=session_id())
+    job = job_manager().submit(name or "Konfiguration", solver.solve, cfg, owner=session_id(), kind="solve", config=cfg)
     st.session_state["fg_single_job"] = job.id
 
 

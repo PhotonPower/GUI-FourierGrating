@@ -5,6 +5,7 @@ import streamlit as st
 from fg_gui import config_io, scans, solver
 from fg_gui.jobs import DONE, FAILED
 from fg_gui.state import job_manager, session_id, solver_info
+from fg_gui.widgets import show_estimate
 
 st.title("Scan")
 st.caption(
@@ -25,10 +26,11 @@ if not info.available:
 
 runs: list[dict] = st.session_state.setdefault("fg_scan_runs", [])
 st.write(f"Konfiguration: **{name}**")
+show_estimate(cfg)
 if st.button("Scan rechnen", type="primary"):
     snapshot = config_io.parse(config_io.dumps(cfg))  # Kopie: Bearbeiten im Editor ändert den Lauf nicht
     title = f"Scan {len(runs) + 1}: {name}"
-    job = job_manager().submit(title, solver.solve_scan, snapshot, owner=session_id())
+    job = job_manager().submit(title, solver.solve_scan, snapshot, owner=session_id(), kind="scan", config=snapshot)
     runs.append({"id": job.id, "title": title})
 
 

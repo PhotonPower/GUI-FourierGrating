@@ -60,9 +60,18 @@ Traceback.
 
 ## Rechnungen
 
-Alle Rechnungen dieses Serverprozesses mit Status (*wartend*, *läuft*, *fertig*, *Fehler*), Laufzeit und
-Fehlermeldung; standardmäßig nur die eigene Sitzung. Es rechnet immer nur eine bestimmte Zahl gleichzeitig
-(`FG_GUI_WORKERS`, Standard 1); weitere warten. Nach einem Neustart des Dienstes ist die Liste leer.
+Alle Rechnungen (Einzelrechnung, Scan, Nahfeld) werden gespeichert (`FG_GUI_DATA_DIR/runs/<id>/`) und bleiben nach
+einem Neustart des Servers in der Liste. Die Tabelle zeigt Art, Status, **Platz** in der Warteschlange und Laufzeit;
+„Nur diese Sitzung“ blendet die Rechnungen anderer Nutzer aus. Unter *Einzelne Rechnung*:
+
+* **Abbrechen** – nur für wartende Rechnungen (eine laufende lässt sich nicht unterbrechen).
+* **Löschen** – entfernt eine beendete Rechnung samt Dateien.
+* **Im Editor öffnen** übernimmt die gespeicherte Konfiguration; **Im Scan / Nahfeld öffnen** zeigt das Ergebnis dort.
+* Was beim Neustart noch wartete oder lief, steht als Fehler „Server wurde neu gestartet“ da; bitte neu einreichen.
+
+Vor dem Rechnen zeigen Editor und Scan eine **Abschätzung** (Zahl der Rechnungen, Matrixgröße n = 4 n_f, Speicher).
+Der Speicher ist ein Faustwert (12 komplexe n×n-Matrizen je gleichzeitigem Scanpunkt) und warnt ab 70 % des
+Arbeitsspeichers; er kann bei RK-Löser, vielen Scheiben oder GPU weit danebenliegen.
 
 ## System
 

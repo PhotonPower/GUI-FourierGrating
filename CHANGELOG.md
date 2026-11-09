@@ -2,6 +2,22 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.5.0] – 2026-11-09
+
+### Hinzugefügt (G4)
+- Persistenz: jede Rechnung unter `FG_GUI_DATA_DIR/runs/<id>/` (`meta.json`, `config.json`, Ergebnis als
+  `.npz`/`.json`); die Liste auf der Seite *Rechnungen* übersteht Neustarts, Ergebnisse werden erst beim Anzeigen
+  geladen. Was beim Beenden wartete oder lief, erscheint als „Fehler: Server wurde neu gestartet“.
+- Warteschlange mit Platznummer; wartende Rechnungen lassen sich abbrechen, beendete löschen (samt Dateien).
+  Laufende Rechnungen sind nicht abbrechbar (FourierGrating bietet das nicht).
+- Seite *Rechnungen*: Auswahl einer Rechnung mit Status, Platz, Laufzeit, Plattenbedarf, Fehler, Konfiguration;
+  „Im Editor öffnen“, „Im Scan öffnen“, „Im Nahfeld öffnen“; Einzelrechnungen direkt dargestellt.
+- Grobe Abschätzung von Rechnungszahl, Matrixgröße n = 4 n_f und Speicher (Faustwert) im Editor und im Scan,
+  mit Warnung ab 70 % des Arbeitsspeichers (`fg_gui.estimate`).
+- Tests: Neustart, Unterbrechung, Abbruch, Warteschlange, gleichzeitige Sitzungen, Speicherformat.
+- Änderung: Alte Rechnungen werden nicht mehr nach `FG_GUI_JOB_HISTORY` gekürzt, solange der Speicher aktiv ist;
+  das Aufräumen folgt in G7.
+
 ## [0.4.0] – 2026-11-09
 
 ### Hinzugefügt (G3)

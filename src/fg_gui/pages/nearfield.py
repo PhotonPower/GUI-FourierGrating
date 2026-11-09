@@ -57,7 +57,9 @@ if not info.available:
 if isinstance(block, dict) and st.button("Nahfeld rechnen", type="primary"):
     snapshot = config_io.parse(config_io.dumps(cfg))  # Kopie
     snapshot["nearfield"]["enabled"] = True  # die Seite verlangt das Nahfeld ausdrücklich
-    job = job_manager().submit(f"Nahfeld: {name}", solver.near_field, snapshot, owner=session_id())
+    job = job_manager().submit(
+        f"Nahfeld: {name}", solver.near_field, snapshot, owner=session_id(), kind="nearfield", config=snapshot
+    )
     st.session_state["fg_nf_job"] = job.id
 
 

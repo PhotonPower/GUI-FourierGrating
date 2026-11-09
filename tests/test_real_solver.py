@@ -122,3 +122,24 @@ def test_export_readable_by_plot_nearfield(tmp_path):
     assert np.allclose(meta["axes"]["axis1"]["values_um"], nf["vertical"]["axis1_um"])
     for part in ("abs", "re"):
         assert np.array_equal(pn.select_part(data["Ex"], part), nfm.select(nf["vertical"], "Ex", part))
+
+
+@pytest.mark.solver
+def test_runs_survive_restart_with_real_solver(tmp_path):
+    import numpy as np
+
+    from fg_gui import results
+    from fg_gui.jobs import DONE, JobManager
+    from fg_gui.store import RunStore
+
+    jm = JobManager(workers=1, store=RunStore(tmp_path / "runs"))
+    job = jm.submit("echt", solver.solve, EXAMPLE, kind="solve", config=EXAMPLE)
+    job.future.result()
+    before = results.totals(job.result())
+    jm.shutdown()
+    jm2 = JobManager(workers=1, store=RunStore(tmp_path / "runs"))
+    again = jm2.get(job.id)
+    assert again.status == DONE and jm2.config(job.id) == EXAMPLE
+    after = results.totals(again.result())
+    assert after == before and np.isclose(after["ΣR"] + after["ΣT"], 1.0, atol=1e-10)
+    jm2.shutdown()

@@ -10,6 +10,7 @@ from __future__ import annotations
 import streamlit as st
 
 from fg_gui import config_form as cf
+from fg_gui import estimate
 
 
 def wkey(*parts) -> str:
@@ -58,3 +59,18 @@ def complex_input(container, label_: str, d: dict, key: str, default: float = 1.
     ni = c2.number_input(f"{label_} Im", value=im, format="%.10g", key=wkey(id(d), key, "im"))
     if (nr, ni) != (re_, im):
         d[key] = cf.complex_value(nr, ni)
+
+
+def show_estimate(cfg: dict) -> None:
+    """Zeile mit Scanpunkten, Matrixgröße und grobem Speicherbedarf; Warnung bei knappem Arbeitsspeicher."""
+    e = estimate.summary(cfg)
+    points = e["scan_points"] * e["sweep_values"]
+    st.caption(
+        f"Abschätzung: {points} Rechnung(en) · Matrixgröße n = {e['matrix_size']} · "
+        f"Speicher grob {e['memory_text']} (Faustwert, nur zur Orientierung)"
+    )
+    if e["ram_fraction"] is not None and e["ram_fraction"] > 0.7:
+        st.warning(
+            f"Der geschätzte Speicherbedarf liegt bei {e['ram_fraction']:.0%} des Arbeitsspeichers. "
+            "Ordnungen (Nx, Nz) oder parallele Scanpunkte (`threads.scan`) verringern."
+        )

@@ -143,3 +143,35 @@ def test_nearfield_page_without_config(fake_fg):
     at = AppTest.from_file(str(Path(APP).parent / "pages" / "nearfield.py"), default_timeout=30).run()
     assert not at.exception, at.exception
     assert any("Editor" in i.value for i in at.info)
+
+
+def _run_editor_job(fake_fg) -> tuple[AppTest, str]:
+    at = _run("editor.py")
+    next(b for b in at.button if b.label == "Rechnen").click().run()
+    _wait(at, lambda: at.success)
+    assert at.success
+    return at, at.session_state["fg_editor_job"]
+
+
+def test_jobs_page_lists_persisted_run_and_deletes(fake_fg):
+    at, _ = _run_editor_job(fake_fg)
+    at.switch_page(str(Path(APP).parent / "pages" / "jobs.py"))
+    at.run()
+    assert not at.exception, at.exception
+    assert at.dataframe and at.selectbox
+    next(b for b in at.button if b.label == "Löschen").click().run()
+    assert not at.exception, at.exception
+    assert any("Keine Rechnungen" in i.value for i in at.info)
+
+
+def test_jobs_page_survives_restart_and_other_session(fake_fg):
+    import streamlit as st
+
+    _, job_id = _run_editor_job(fake_fg)
+    st.cache_resource.clear()  # „Neustart“: die Jobverwaltung wird neu aufgebaut und liest die Festplatte
+    other = AppTest.from_file(str(Path(APP).parent / "pages" / "jobs.py"), default_timeout=30).run()
+    assert not other.exception, other.exception
+    assert any("Keine Rechnungen" in i.value for i in other.info)  # eine andere Sitzung sieht nur ihre eigenen
+    other.toggle[0].set_value(False).run()  # „Nur diese Sitzung“ aus
+    assert not other.exception, other.exception
+    assert any(o.startswith(job_id) and "fertig" in o for o in other.selectbox[0].options)

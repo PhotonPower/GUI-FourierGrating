@@ -10,7 +10,7 @@ from fg_gui import config_form as cf
 from fg_gui import config_io, results, solver
 from fg_gui.jobs import DONE, FAILED
 from fg_gui.state import job_manager, session_id, settings, solver_info
-from fg_gui.widgets import choice, complex_input, integer, number, text_list
+from fg_gui.widgets import choice, complex_input, integer, number, show_estimate, text_list
 
 st.title("Editor")
 st.caption(
@@ -328,9 +328,11 @@ if not info.available:
     st.warning("FourierGrating ist nicht installiert – Rechnen nicht möglich (Seite „System“).")
     st.stop()
 
+show_estimate(cfg)
 if st.button("Rechnen", type="primary"):
+    snapshot = config_io.parse(config_io.dumps(cfg))  # Kopie: Bearbeiten während der Rechnung ändert sie nicht
     job = job_manager().submit(
-        label or "Konfiguration", solver.solve, config_io.parse(config_io.dumps(cfg)), owner=session_id()
+        label or "Konfiguration", solver.solve, snapshot, owner=session_id(), kind="solve", config=snapshot
     )
     st.session_state["fg_editor_job"] = job.id
     st.session_state.pop("fg_editor_error", None)
