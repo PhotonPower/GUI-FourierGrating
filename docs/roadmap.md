@@ -39,6 +39,26 @@ Reihenfolge wie aufgeführt (AGENTS.md).
     Aufräumen alter Ergebnisse und Uploads, Health-Check (`fg-gui-health`) fürs Monitoring
   - Danach ergänzt (0.8.1–0.9.1): Formulare für 2D-Schichten im Editor, Sitzungskennung `?s=` mit wiederhergestelltem
     Editor-Entwurf, Download fertiger Rechnungen (ZIP) und Modelle (JSON)
+- [ ] **G8** Dispersive Materialien (setzt FourierGrating M22 voraus, Plan v2.18 Teil 8)
+  - Materialformular: neue Arten *Tabelle (n, k)*, *Tabelle (ε)*, *Sellmeier*, *Cauchy*, *Drude–Lorentz* neben n, ε,
+    Hauptwerten und Tensor; bei Hauptwerten je Komponente fest oder Modell (vorerst als JSON je Komponente)
+  - Tabellen: CSV hochladen oder einfügen, Einheit (µm, nm, eV), Interpolation (`linear`/`cubic`), Extrapolation
+    (`error`/`constant`). Gespeichert wird immer inline (`data`), nie ein Serverpfad – Rechnungen bleiben
+    reproduzierbar und als JSON vollständig herunterladbar. Hochgeladene Konfigurationen mit `file` werden beim
+    Laden inline umgewandelt (Pfade nur innerhalb `FG_GUI_DATA_DIR`, wie bei CAD)
+  - Import einer refractiveindex.info-YAML über `fouriergrating.materials.from_refractiveindex` (in `solver.py`)
+  - Materialbibliothek: gemeinsamer, vom Betrieb gepflegter Ordner `FG_GUI_DATA_DIR/materials/` (CSV/YAML, nur
+    lesbar für Nutzer); Auswahl kopiert das Modell inline in die Konfiguration. `docs/deployment_rtx6000.md` ergänzen
+  - Vorschau im Formular: n, k (bzw. ε′, ε″) über λ aus `fg.material_eps`, Einfallsbereich des Scans hinterlegt;
+    Bereichsfehler und Sellmeier-Pole von FourierGrating erscheinen am Material (JSON-Pointer aus der Meldung)
+  - Seite *Scans*: optional n, k der dispersiven Materialien je Scanpunkt aus `diagnostics["materials"]`;
+    `materials.csv` im ZIP-Download; Seite *Optimierung*: Modellwerte als Parameter anbietbar
+    (`/materials/<name>/n/sellmeier/B/0` usw.)
+  - `solver.MIN_VERSION` auf die FourierGrating-Version mit M22 anheben; Ersatzmodul um `material_eps` und
+    `materials.from_refractiveindex` erweitern
+  - Abnahme: Roundtrip Formular ↔ Konfiguration für alle neuen Beispiele von FourierGrating (verlustfrei, unbekannte
+    Schlüssel bleiben); `file` → `data` gleichwertig; Vorschau-Daten unverändert aus `material_eps` durchgereicht
+    (Ersatzdaten); mit `-m solver`: `examples/dispersive_metal_grating.json` identisch zu `fgsolve`
 
 ## Anforderungen an FourierGrating
 
@@ -47,3 +67,6 @@ Was der GUI fehlt, wird dort ergänzt (AGENTS.md, Abschnitt 1), nicht hier nachg
 - Fehlermeldungen mit Feldpfad (JSON-Pointer, z. B. `/layers/1/materials/1`) in `FourierGratingError`, damit der
   Editor Fehler am Feld anzeigen kann. Heute enthalten sie nur Quelltextposition und Text (`unknown material 'x'`);
   `config_form.locate_error` rät über Stichwörter. Negative Schichtdicken werden nicht abgelehnt.
+- Dispersion (FourierGrating M22, Plan v2.18): `fg.material_eps(cfg, name, lambda_um)` für die Vorschau,
+  `fouriergrating.materials.from_refractiveindex`, `diagnostics["materials"]` je Scanpunkt und JSON-Pointer in den
+  Bereichsfehlern der Materialmodelle. Bis dahin ist Dispersion in der GUI nicht möglich (nur Einzelrechnungen je λ).
