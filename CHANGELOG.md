@@ -2,7 +2,28 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
-## [0.10.1] – 2026-11-09
+## [0.11.0] – 2026-11-16
+
+### Hinzugefügt (G8, setzt FourierGrating M22 voraus)
+- Editor, Reiter *Materialien*: neue Arten **Tabelle (n, k)**, **Tabelle (ε)**, **Sellmeier**, **Cauchy** und
+  **Drude–Lorentz** neben n, ε, Hauptwerten und Tensor. Tabellen als Zeilen mit Einheit (µm, nm, eV), Interpolation
+  (`linear`/`cubic`) und Verhalten außerhalb (`error`/`constant`); CSV einfügen oder hochladen. Hauptwerte mit Modellen
+  je Komponente als JSON. Unveränderte Werte bleiben im Roundtrip bitgleich.
+- Tabellen werden immer inline (`data`) gespeichert: Konfigurationen mit `file` werden beim Laden (Beispiel, Upload) und
+  beim Rechnen in `data` umgewandelt; Dateien nur aus Uploads, der Materialbibliothek und dem Beispielverzeichnis
+  (Wächter wie bei CAD). Rechnungen bleiben dadurch reproduzierbar und als JSON vollständig herunterladbar.
+- Import: **Materialbibliothek** `FG_GUI_DATA_DIR/materials/` (CSV/YAML, vom Betrieb gepflegt, für Nutzer nur lesbar;
+  die Auswahl kopiert das Material in die Konfiguration), CSV und **refractiveindex.info-YAML**
+  (`fouriergrating.materials.from_refractiveindex`, neue Abhängigkeit `pyyaml`).
+- Vorschau ε′(λ), ε″(λ) je dispersivem Material (Werte von `fg.material_eps`, Bereich aus dem Einfall); Fehler des Kerns
+  (Bereich, Pol) erscheinen mit JSON-Pointer am Material (`config_form.error_material`).
+- Seite *Einzelrechnung*: n und ε der dispersiven Materialien am Rechenpunkt (Diagnose `materials`); Seite *Scan*:
+  ε über den Wellenlängen des Scans mit `materials.csv`; ZIP-Download enthält `materials.csv`.
+- Seite *Optimierung*: Modellwerte (`/materials/<name>/n/sellmeier/B/0` …) sind Parameter; die Wellenlängenspalte
+  einer Tabelle nicht.
+- `solver.info().dispersion_available` (vorhanden, wenn `fg.material_eps` existiert); die neuen Arten erscheinen nur
+  dann. `solver.MIN_VERSION` bleibt 0.18.0, weil FourierGrating M22 ohne neue Versionsnummer liefert (Stand 16.11.2026).
+ – 2026-11-09
 
 ### Hinzugefügt
 - systemd-Benutzerdienst für herkules3: `deploy/fg-gui.user.service`, `deploy/fg-gui.user.env.example` und

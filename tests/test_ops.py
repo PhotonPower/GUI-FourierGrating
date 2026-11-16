@@ -230,3 +230,40 @@ def test_delete_owner(tmp_path):
     assert jm.get(other.id) is not None and jm.get(running.id) is not None
     assert not (sessions / "aaaa1111.json").exists() and (sessions / "bbbb2222.json").exists()
     assert all(not jm.store.path(j.id).exists() for j in mine)
+
+
+def test_run_zip_has_materials_csv_for_dispersive_runs(tmp_path, fake_fg):
+    import io
+    import zipfile
+
+    from conftest import FakeScan
+    from fg_gui import export
+
+    cfg = {
+        "incidence": {"lambda_um": [0.5, 0.6]},
+        "materials": {"air": {"n": 1.0}, "ag": {"eps": {"drude_lorentz": {"eps_inf": 1.0}}}},
+    }
+
+    def solve():
+        r = FakeResult()
+        r.diagnostics = {"materials": [{"name": "ag", "component": 0, "n": 0.1 + 2.7j, "eps": -7.0 + 0.7j}]}
+        return r
+
+    jm = JobManager(store=RunStore(tmp_path / "runs"))
+    single = jm.submit("einzel", solve, kind="solve", config=cfg)
+    scan = jm.submit("scan", lambda: FakeScan("/p"), kind="scan", config=cfg)
+    plain = jm.submit("ohne", FakeResult, kind="solve", config={"materials": {"air": {"n": 1.0}}})
+    for j in (single, scan, plain):
+        j.future.result()
+
+    def names_and_csv(job):
+        z = zipfile.ZipFile(io.BytesIO(export.run_zip(job, jm.store)))
+        csv = next((n for n in z.namelist() if n.endswith("materials.csv")), None)
+        return (z.read(csv).decode().splitlines() if csv else None), z
+
+    lines, _ = names_and_csv(single)
+    assert lines[0] == "lambda_um,material,component,n_re,n_im,eps_re,eps_im"
+    assert lines[1].startswith("0.5,ag,iso,0.1,2.7,-7.0,0.7")
+    lines, _ = names_and_csv(scan)
+    assert lines[0] == "lambda_um,material,component,eps_re,eps_im" and len(lines) == 3  # λ = 0.5 und 0.6
+    assert names_and_csv(plain)[0] is None  # ohne dispersive Materialien keine Datei

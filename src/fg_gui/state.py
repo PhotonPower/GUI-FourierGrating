@@ -13,7 +13,7 @@ import uuid
 
 import streamlit as st
 
-from . import cad, housekeeping, logs, solver, users
+from . import cad, dispersion, housekeeping, logs, solver, users
 from . import settings as _settings
 from .jobs import Job, JobManager
 from .store import RunStore
@@ -170,14 +170,37 @@ def uploads_dir():
     return settings().data_dir / "uploads"
 
 
-def submit_job(label: str, fn, cfg: dict, *, kind: str, **kwargs) -> Job:
-    """Reicht eine Rechnung für ``cfg`` ein. CAD-Dateien dürfen nur aus Uploads oder dem Beispielverzeichnis kommen.
+def materials_dir():
+    """Gemeinsame Materialbibliothek ``FG_GUI_DATA_DIR/materials`` (vom Betrieb gepflegt, für Nutzer nur lesbar)."""
+    return settings().data_dir / "materials"
 
-    Wirft ``cad.CadFileError``, wenn eine Datei fehlt oder außerhalb liegt. Gerechnet und gespeichert wird die
-    Konfiguration mit aufgelösten absoluten Pfaden.
-    """
+
+def allowed_roots() -> list:
+    """Verzeichnisse, aus denen Konfigurationen Dateien lesen dürfen: Uploads, Materialbibliothek, Beispiele."""
     s = settings()
+    return [uploads_dir(), materials_dir()] + ([s.examples_dir] if s.examples_dir else [])
+
+
+def inline_tables(cfg: dict, extra_bases: list | None = None) -> dict:
+    """Ersetzt Tabellen mit ``file`` durch ``data`` (nur Dateien aus :func:`allowed_roots`).
+
+    Wirft ``cad.CadFileError`` bei fehlender oder unzulässiger Datei.
+    """
+    roots = allowed_roots()
+    try:
+        return dispersion.inline_files(cfg, bases=[*(extra_bases or []), *roots], roots=roots)
+    except dispersion.DispersionError as e:
+        raise cad.CadFileError(str(e)) from e
+
+
+def submit_job(label: str, fn, cfg: dict, *, kind: str, **kwargs) -> Job:
+    """Reicht eine Rechnung für ``cfg`` ein. Dateien einer Konfiguration kommen nur aus erlaubten Verzeichnissen.
+
+    Wirft ``cad.CadFileError``, wenn eine STEP- oder Tabellendatei fehlt oder außerhalb liegt. Gerechnet und
+    gespeichert wird die Konfiguration mit aufgelösten absoluten CAD-Pfaden und Tabellen als ``data``.
+    """
     sweep_if_due()
-    roots = [uploads_dir()] + ([s.examples_dir] if s.examples_dir else [])
+    roots = allowed_roots()
     prepared = cad.resolve_files(cfg, bases=roots, roots=roots)
+    prepared = inline_tables(prepared)
     return job_manager().submit(label, fn, prepared, owner=owner_id(), kind=kind, config=prepared, **kwargs)

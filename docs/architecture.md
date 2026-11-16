@@ -29,6 +29,7 @@ Browser ──HTTPS──> nginx (TLS, Anmeldung) ──WebSocket──> Streaml
 | `results.py` | `fg.Result` → `pandas.DataFrame`, Summen | nein |
 | `config_form.py`, `widgets.py` | Editor: Eingaben ↔ Konfiguration (nur Geändertes wird geschrieben), Felder | nein |
 | `scans.py`, `nearfield.py`, `estimate.py` | Scan-/Nahfeld-Tabellen und -Bilder, Abschätzung von Aufwand und Speicher | nein |
+| `dispersion.py`, `material_forms.py` | dispersive Materialien: Modelle erkennen, Tabellen/CSV, `file` → `data`; Formulare, Import, Vorschau | teils |
 | `cad.py`, `optimize.py` | CAD-Dateien (Dateiwächter), Zielfunktion/Parameter/Verlauf der Optimierung | nein |
 | `store.py`, `export.py` | Rechnungen auf der Festplatte (`FG_GUI_DATA_DIR/runs`), ZIP-Download | nein |
 | `users.py`, `logs.py`, `housekeeping.py`, `health.py` | Proxy-Benutzer, Logging, Aufräumen, Health-Check (`fg-gui-health`) | nein |

@@ -1,5 +1,8 @@
 """Abnahme mit dem echten Löser (Server): nur mit installiertem fouriergrating, sonst übersprungen."""
 
+import json
+from pathlib import Path
+
 import pytest
 
 from conftest import EXAMPLE
@@ -245,3 +248,95 @@ def test_littrow_optimization_reproduces_fourier_grating_example():
     with tempfile.TemporaryDirectory() as d:
         save_result("optimize", res, Path(d))
         assert load_result("optimize", Path(d))["x"] == res["x"]
+
+
+# ---------------------------------------------------------------- G8: dispersive Materialien (FourierGrating M22)
+DISPERSIVE_EXAMPLE = Path(__file__).parent / "data" / "dispersive_metal_grating.json"  # Kopie aus FourierGrating
+
+
+def _needs_dispersion():
+    info = solver.info()
+    if not info.dispersion_available:
+        pytest.skip("FourierGrating ohne M22 (fg.material_eps)")
+
+
+@pytest.mark.solver
+def test_dispersive_example_solves_and_matches_preview_values():
+    import copy
+
+    import numpy as np
+
+    from fg_gui import dispersion
+
+    _needs_dispersion()
+    cfg = json.loads(DISPERSIVE_EXAMPLE.read_text())
+    assert dispersion.dispersive_materials(cfg) == ["ag"]
+    one = copy.deepcopy(cfg)
+    one["incidence"]["lambda_um"] = 0.5
+    res = solver.solve(one)
+    diag = dispersion.diagnostics_frame(res.diagnostics, 0.5)
+    eps = solver.material_eps(cfg, "ag", [0.5])  # Vorschau-Weg
+    assert diag.iloc[0].eps_re == pytest.approx(eps[0].real, rel=1e-12)
+    assert diag.iloc[0].eps_im == pytest.approx(eps[0].imag, rel=1e-12)
+    frame = dispersion.eps_frame([0.5], eps)
+    assert np.allclose(frame.eps_re, eps.real)
+    scan = solver.solve_scan(cfg)
+    assert len(set(scan.columns["lambda_um"])) == 31
+
+
+@pytest.mark.solver
+def test_table_file_and_inline_data_give_identical_results(tmp_path):
+    import copy
+
+    import numpy as np
+
+    from fg_gui import dispersion
+
+    _needs_dispersion()
+    cfg = json.loads(DISPERSIVE_EXAMPLE.read_text())
+    cfg["incidence"]["lambda_um"] = {"from": 0.45, "to": 0.9, "steps": 4}
+    rows = [[0.4 + 0.1 * i, -4.0 - 3.0 * i, 0.2 + 0.05 * i] for i in range(7)]
+    (tmp_path / "ag.csv").write_text("# test\n" + "\n".join(", ".join(repr(v) for v in r) for r in rows))
+    with_file = copy.deepcopy(cfg)
+    with_file["materials"]["ag"] = {"eps": {"table": {"file": str(tmp_path / "ag.csv"), "interpolation": "cubic"}}}
+    inline = dispersion.inline_files(with_file, bases=[tmp_path], roots=[tmp_path])
+    assert "file" not in inline["materials"]["ag"]["eps"]["table"]
+    a, b = solver.solve_scan(with_file), solver.solve_scan(inline)
+    for k in a.columns:
+        assert np.array_equal(a.columns[k], b.columns[k]), k
+
+
+@pytest.mark.solver
+def test_range_error_carries_pointer_to_the_material():
+    from fg_gui import config_form
+
+    _needs_dispersion()
+    cfg = json.loads(DISPERSIVE_EXAMPLE.read_text())
+    cfg["incidence"]["lambda_um"] = 0.25
+    cfg["materials"]["ag"] = {"eps": {"table": {"data": [[0.3, -2.0, 0.1], [0.9, -20.0, 0.5]]}}}
+    with pytest.raises(Exception) as e:
+        solver.solve(cfg)
+    assert "/materials/ag/" in str(e.value)
+    assert config_form.error_material(str(e.value)) == "ag"
+    assert config_form.locate_error(str(e.value), cfg) == ("materials", None)
+
+
+@pytest.mark.solver
+def test_import_refractiveindex_yaml_gives_a_working_material():
+    pytest.importorskip("yaml")
+    _needs_dispersion()
+    text = """
+REFERENCES: test
+DATA:
+  - type: tabulated nk
+    data: |
+        0.30 1.50 0.10
+        0.60 1.60 0.20
+        0.90 1.70 0.30
+"""
+    mat = solver.from_refractiveindex(text)
+    assert mat == {"n": {"table": {"data": [[0.3, 1.5, 0.1], [0.6, 1.6, 0.2], [0.9, 1.7, 0.3]]}}}
+    cfg = json.loads(DISPERSIVE_EXAMPLE.read_text())
+    cfg["incidence"]["lambda_um"] = 0.6
+    cfg["materials"]["ag"] = mat
+    assert solver.solve(cfg).transmitted is not None

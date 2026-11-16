@@ -23,6 +23,8 @@ class SolverInfo:
     core_variant: str = ""  # "cpu" | "cuda12"
     cuda_available: bool = False
     cad_available: bool = False
+    #: ``fg.material_eps`` vorhanden (dispersive Materialien, FourierGrating M22)
+    dispersion_available: bool = False
     backend: dict = field(default_factory=dict)
     error: str = ""
 
@@ -66,6 +68,7 @@ def info() -> SolverInfo:
         core_variant=str(call("core_variant", "")),
         cuda_available=bool(call("cuda_available", False)),
         cad_available=cad_ok,
+        dispersion_available=callable(getattr(fg, "material_eps", None)),
         backend=dict(call("get_backend", {}) or {}),
     )
 
@@ -113,3 +116,20 @@ def run_optimization(cfg: dict, spec: Any, history: Any = None) -> dict:
     from . import optimize
 
     return optimize.run(simulation(cfg), spec, history)
+
+
+# ---------------------------------------------------------------- dispersive Materialien (M22)
+def material_eps(cfg: dict, name: str, lambdas: list[float]) -> Any:
+    """Permittivität des Materials ``name`` bei den Wellenlängen (µm), vom Kern ausgewertet (``fg.material_eps``).
+
+    Komplexes Array; bei ``eps_principal`` mit einer zusätzlichen Achse der Länge 3. Fehler des Kerns (Bereich,
+    Sellmeier-Pol) kommen als ``FourierGratingError`` mit JSON-Pointer.
+    """
+    import numpy as np
+
+    return module().material_eps(cfg, name, np.asarray(lambdas, dtype=float))
+
+
+def from_refractiveindex(text: str) -> dict:
+    """Materialobjekt aus dem Text einer refractiveindex.info-YAML (``fouriergrating.materials``; braucht PyYAML)."""
+    return module().materials.from_refractiveindex(text)

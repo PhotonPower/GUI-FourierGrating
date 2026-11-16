@@ -7,10 +7,10 @@ import pandas as pd
 import streamlit as st
 
 from fg_gui import config_form as cf
-from fg_gui import config_io, results, solver
+from fg_gui import config_io, dispersion, material_forms, results, solver
 from fg_gui.cad import CadFileError
 from fg_gui.jobs import DONE, FAILED
-from fg_gui.state import job_manager, settings, solver_info, submit_job
+from fg_gui.state import inline_tables, job_manager, materials_dir, settings, solver_info, submit_job
 from fg_gui.widgets import choice, complex_input, integer, number, show_estimate, text_list
 
 st.title("Editor")
@@ -52,13 +52,13 @@ with st.container(border=True):
         elif source == "Beispiel":
             path = st.selectbox("Beispiel", examples, format_func=lambda p: p.name, key="fg_editor_example")
             if path is not None and st.session_state.get("fg_cfg_name") != "beispiel:" + path.name:
-                _load(config_io.parse(path.read_bytes()), "beispiel:" + path.name)
+                _load(inline_tables(config_io.parse(path.read_bytes()), [path.parent]), "beispiel:" + path.name)
         else:
             up = st.file_uploader("Konfiguration (.json)", type=["json"], key="fg_editor_upload")
             if up is not None and st.session_state.get("fg_cfg_name") != "datei:" + up.file_id:
-                _load(config_io.parse(up.getvalue()), "datei:" + up.file_id)
+                _load(inline_tables(config_io.parse(up.getvalue())), "datei:" + up.file_id)
                 st.session_state["fg_cfg_label"] = up.name
-    except config_io.ConfigError as e:
+    except (config_io.ConfigError, CadFileError) as e:
         st.error(str(e))
 
 if "fg_cfg" not in st.session_state:
@@ -79,6 +79,7 @@ def sub(name: str) -> dict:
     return _detached.setdefault(name, {})
 
 
+disp_ok = solver_info().dispersion_available
 materials: dict = cfg["materials"] if isinstance(cfg.get("materials"), dict) else {}
 mat_names = list(materials)
 _job = job_manager().get(st.session_state.get("fg_editor_job", ""))
@@ -147,11 +148,16 @@ with tab_mat:
     for name in list(materials):
         mat = materials[name]
         kind = cf.material_kind(mat)
-        with st.expander(f"{name} · {cf.MATERIAL_KINDS.get(kind, 'andere Angabe')}"):
+        with st.expander(
+            f"{name} · {cf.MATERIAL_KINDS.get(kind, 'andere Angabe')}",
+            expanded=name == cf.error_material(err[0] if err else ""),
+        ):
+            if err and err[1] == "materials" and cf.error_material(err[0]) == name:
+                st.error(err[0])
             if not isinstance(mat, dict) or kind is None:
                 st.warning("Unbekannte Materialform – Reiter JSON.")
             else:
-                keys = list(cf.MATERIAL_KINDS)
+                keys = [k for k in cf.MATERIAL_KINDS if k not in cf.DISPERSIVE_KINDS or disp_ok or k == kind]
                 new_kind = st.selectbox(
                     "Art", keys, index=keys.index(kind), format_func=cf.MATERIAL_KINDS.get, key=_k("mk", name)
                 )
@@ -161,8 +167,25 @@ with tab_mat:
                     st.rerun()
                 if kind in ("n", "eps"):
                     complex_input(st, "n" if kind == "n" else "ε", mat, kind)
+                elif kind in cf.DISPERSIVE_KINDS:
+                    material_forms.dispersive_form(st, name, mat, _bump)
                 elif kind == "eps_principal":
-                    text_list(st, "Hauptwerte ε (3 Werte)", mat, "eps_principal")
+                    if (
+                        any(dispersion.model_name(v) for v in mat["eps_principal"])
+                        if isinstance(mat["eps_principal"], list)
+                        else False
+                    ):
+                        raw = st.text_area(
+                            "Hauptwerte ε (JSON; Zahlen oder Modelle je Komponente)",
+                            value=config_io.dumps(mat["eps_principal"]),
+                            key=_k("mpj", name),
+                        )
+                        try:
+                            cf.assign(mat, "eps_principal", json.loads(raw))
+                        except ValueError as e:
+                            st.error(f"Kein gültiges JSON: {e}")
+                    else:
+                        text_list(st, "Hauptwerte ε (3 Werte)", mat, "eps_principal")
                     text_list(st, "Euler-Winkel (°, z-x-z)", mat, "euler_deg")
                 else:
                     raw = st.text_area(
@@ -172,6 +195,8 @@ with tab_mat:
                         cf.assign(mat, kind, json.loads(raw))
                     except ValueError as e:
                         st.error(f"Kein gültiges JSON: {e}")
+            if dispersion.is_dispersive(mat):
+                material_forms.preview(st, cfg, name)
             if st.button("Material entfernen", key=_k("md", name)):
                 del materials[name]
                 _bump()
@@ -185,6 +210,9 @@ with tab_mat:
         cfg["materials"] = materials
         _bump()
         st.rerun()
+
+    with st.expander("Material importieren (Bibliothek, CSV, refractiveindex.info)"):
+        material_forms.import_material(cfg, materials, dispersion.library_files(materials_dir()), _bump)
 
 with tab_layers:
     section_error("layers")

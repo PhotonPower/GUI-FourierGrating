@@ -39,7 +39,7 @@ Reihenfolge wie aufgeführt (AGENTS.md).
     Aufräumen alter Ergebnisse und Uploads, Health-Check (`fg-gui-health`) fürs Monitoring
   - Danach ergänzt (0.8.1–0.9.1): Formulare für 2D-Schichten im Editor, Sitzungskennung `?s=` mit wiederhergestelltem
     Editor-Entwurf, Download fertiger Rechnungen (ZIP) und Modelle (JSON)
-- [ ] **G8** Dispersive Materialien (setzt FourierGrating M22 voraus, Plan v2.18 Teil 8)
+- [x] **G8** Dispersive Materialien (setzt FourierGrating M22 voraus, Plan v2.18 Teil 8)
   - Materialformular: neue Arten *Tabelle (n, k)*, *Tabelle (ε)*, *Sellmeier*, *Cauchy*, *Drude–Lorentz* neben n, ε,
     Hauptwerten und Tensor; bei Hauptwerten je Komponente fest oder Modell (vorerst als JSON je Komponente)
   - Tabellen: CSV hochladen oder einfügen, Einheit (µm, nm, eV), Interpolation (`linear`/`cubic`), Extrapolation
@@ -54,11 +54,12 @@ Reihenfolge wie aufgeführt (AGENTS.md).
   - Seite *Scans*: optional n, k der dispersiven Materialien je Scanpunkt aus `diagnostics["materials"]`;
     `materials.csv` im ZIP-Download; Seite *Optimierung*: Modellwerte als Parameter anbietbar
     (`/materials/<name>/n/sellmeier/B/0` usw.)
-  - `solver.MIN_VERSION` auf die FourierGrating-Version mit M22 anheben; Ersatzmodul um `material_eps` und
-    `materials.from_refractiveindex` erweitern
+  - Erkennung der Fähigkeit über `solver.info().dispersion_available` statt `MIN_VERSION` (FourierGrating-Version blieb
+    0.18.0); Ersatzmodul um `material_eps` und `materials.from_refractiveindex` erweitert
   - Abnahme: Roundtrip Formular ↔ Konfiguration für alle neuen Beispiele von FourierGrating (verlustfrei, unbekannte
     Schlüssel bleiben); `file` → `data` gleichwertig; Vorschau-Daten unverändert aus `material_eps` durchgereicht
-    (Ersatzdaten); mit `-m solver`: `examples/dispersive_metal_grating.json` identisch zu `fgsolve`
+    (Ersatzdaten); mit `-m solver`: `examples/dispersive_metal_grating.json` (Kopie in `tests/data/`) rechnet, Vorschau-
+    und Diagnosewerte stimmen überein, `file` und `data` liefern bitgleiche Ergebnisse
 
 ## Anforderungen an FourierGrating
 
@@ -67,6 +68,7 @@ Was der GUI fehlt, wird dort ergänzt (AGENTS.md, Abschnitt 1), nicht hier nachg
 - Fehlermeldungen mit Feldpfad (JSON-Pointer, z. B. `/layers/1/materials/1`) in `FourierGratingError`, damit der
   Editor Fehler am Feld anzeigen kann. Heute enthalten sie nur Quelltextposition und Text (`unknown material 'x'`);
   `config_form.locate_error` rät über Stichwörter. Negative Schichtdicken werden nicht abgelehnt.
-- Dispersion (FourierGrating M22, Plan v2.18): `fg.material_eps(cfg, name, lambda_um)` für die Vorschau,
-  `fouriergrating.materials.from_refractiveindex`, `diagnostics["materials"]` je Scanpunkt und JSON-Pointer in den
-  Bereichsfehlern der Materialmodelle. Bis dahin ist Dispersion in der GUI nicht möglich (nur Einzelrechnungen je λ).
+- Dispersion (FourierGrating M22, Plan v2.18): in FourierGrating umgesetzt (Branch `m22-dispersion`, noch nicht in
+  `main`; Version blieb 0.18.0). Für die GUI offen: `material_eps` und `diagnostics["materials"]` kennen nur ε bzw. n
+  der Rechenpunkte – eine Brechzahl-Vorschau (n, k) über λ ohne Rechnung bräuchte ein öffentliches `fg.material_n`
+  (heute nur privat `_core.material_values`); die Vorschau zeigt deshalb ε′ und ε″.

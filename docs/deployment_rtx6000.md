@@ -105,6 +105,14 @@ sudo nginx -t && sudo systemctl enable --now nginx
 
 Den Port 8505 **nicht** nach außerhalb der Institutsfirewall öffnen: Streamlit hat keine Anmeldung.
 
+### Materialbibliothek (dispersive Materialien)
+
+`FG_GUI_DATA_DIR/materials/` ist eine gemeinsame, für Nutzer nur lesbare Bibliothek: CSV-Tabellen (Spalten λ, n, k bzw.
+λ, Re ε, Im ε) und YAML-Dateien aus refractiveindex.info. Der Betrieb legt dort Dateien ab (`cp au_johnson.csv
+/var/lib/fg-gui/materials/`); im Editor (*Materialien → Material importieren → Bibliothek*) kopiert die Auswahl das
+Material in die Konfiguration. Die GUI schreibt nie dorthin. Lizenz der Daten beachten. Konfigurationen mit
+`"file"` in Tabellen lesen nur aus Uploads, dieser Bibliothek und dem Beispielverzeichnis.
+
 ### Benutzer und Anmeldung
 
 Die GUI meldet nicht selbst an. Setzt man `FG_GUI_USER_HEADER=X-Remote-User`, übernimmt sie den Namen, den der Proxy

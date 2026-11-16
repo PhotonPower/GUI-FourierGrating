@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from fg_gui import config_io, results, solver
+from fg_gui import config_io, dispersion, results, solver
 from fg_gui.cad import CadFileError
 from fg_gui.jobs import DONE, FAILED
 from fg_gui.state import job_manager, settings, solver_info, submit_job
@@ -53,6 +53,12 @@ if st.button("Rechnen", type="primary"):
         st.error(str(e))
 
 
+def _lambda_of(job) -> float | None:
+    """Wellenlänge der Einzelrechnung aus der gespeicherten Konfiguration (Zahl oder Liste mit einem Wert)."""
+    cfg = job_manager().config(job.id) or {}
+    return dispersion.first_lambda(cfg)
+
+
 def show_result(job) -> None:
     if job.status == FAILED:
         st.error(job.error)
@@ -69,6 +75,12 @@ def show_result(job) -> None:
     if not df.empty:
         chart = df.assign(Ordnung=df["Seite"] + df["n"].astype(str) + "," + df["m"].astype(str))
         st.bar_chart(chart, x="Ordnung", y="Effizienz")
+    mats = dispersion.diagnostics_frame(res.diagnostics, _lambda_of(job))
+    if not mats.empty:
+        st.subheader("Dispersive Materialien")
+        st.caption("n und ε am Rechenpunkt, vom Kern ausgewertet (Diagnose `materials`).")
+        st.dataframe(mats.drop(columns=["lambda_um"]) if mats["lambda_um"].isna().all() else mats,
+                     hide_index=True, width="stretch")  # fmt: skip
     warnings = (res.diagnostics or {}).get("warnings")
     if warnings:
         st.warning("\n".join(map(str, warnings)))

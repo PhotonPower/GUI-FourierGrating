@@ -95,6 +95,25 @@ TM): Tiefe und Stegbreite für die −1. reflektierte Ordnung.
 Fehler in der Konfiguration meldet FourierGrating beim Rechnen; der Text erscheint rot, *Details* zeigt den
 Traceback.
 
+## Dispersive Materialien
+
+Im Editor (*Materialien*) darf ein Material eine **Funktion der Wellenlänge** sein: *Sellmeier*, *Cauchy*,
+*Drude–Lorentz* oder eine *Tabelle* (n, k bzw. ε). Ohne Modell rechnen alle Scanpunkte mit denselben Zahlen; Spektren
+über mehr als einige Nanometer sind für Metalle und Gläser dann falsch. Voraussetzung ist ein FourierGrating mit M22
+(Seite *System*).
+
+* **Tabellen:** Zeilen von Hand, aus einer CSV (`λ, n, k`; Komma, Semikolon oder Leerraum; `#`-Zeilen und Kopfzeile
+  werden übersprungen) oder aus der Materialbibliothek des Betreibers. Einheit der ersten Spalte µm, nm oder eV;
+  Interpolation `linear` oder `cubic`; außerhalb der Tabelle Fehler oder Randwert (`constant`, mit Warnung).
+  Die Tabelle wird immer in der Konfiguration gespeichert, nie als Serverpfad.
+* **refractiveindex.info:** YAML-Datei hochladen (*Material importieren*): tabellierte n/k-Daten und
+  Sellmeier-Formeln 1 und 2 werden übernommen. Lizenz der Daten beachten.
+* **Vorschau:** ε′(λ) und ε″(λ) im Bereich des Einfalls; Fehler (λ außerhalb der Tabelle, Sellmeier-Pol) erscheinen
+  am betroffenen Material. Der **Superstrat** muss an jedem Scanpunkt verlustfrei sein.
+* **Ergebnisse:** *Einzelrechnung* zeigt n und ε am Rechenpunkt; *Scan* zeigt ε über den Wellenlängen des Scans;
+  der ZIP-Download enthält `materials.csv`.
+* **Optimierung:** Modellwerte (z. B. `/materials/sio2/n/sellmeier/B/0`) lassen sich als Parameter wählen.
+
 ## Rechnungen
 
 Alle Rechnungen (Einzelrechnung, Scan, Nahfeld) werden gespeichert (`FG_GUI_DATA_DIR/runs/<id>/`) und bleiben nach

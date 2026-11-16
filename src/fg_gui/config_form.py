@@ -10,6 +10,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from . import dispersion
+
 #: Schichttypen, für die es ein Formular gibt; alle anderen werden als JSON bearbeitet
 LAYER_TYPES_1D = ("homogeneous", "lamellar1d", "profile1d")
 LAYER_TYPES_2D = ("polygon2d", "contour2d", "profile2d")  # nur bei "dimension": "2D"
@@ -19,7 +21,14 @@ MATERIAL_KINDS = {
     "eps": "Permittivität ε",
     "eps_principal": "Hauptwerte ε (gedreht)",
     "eps_tensor": "Tensor ε (JSON)",
+    # dispersive Materialien (G8, FourierGrating M22)
+    "table_n": "Tabelle (n, k)",
+    "table_eps": "Tabelle (ε)",
+    "sellmeier": "Sellmeier",
+    "cauchy": "Cauchy",
+    "drude_lorentz": "Drude–Lorentz",
 }
+DISPERSIVE_KINDS = ("table_n", "table_eps", "sellmeier", "cauchy", "drude_lorentz")
 PROFILE_SHAPES = ("sinus", "triangle", "points")
 PROFILE2D_SHAPES = ("egg_crate", "sinus_x")
 POLYGON_FACTORIZATIONS = ("auto", "FFF_sym", "FFF_iso", "FFF_B", "laurent")
@@ -142,11 +151,16 @@ def material_kind(mat: Any) -> str | None:
         return None
     for k in ("n", "eps", "eps_tensor", "eps_principal"):
         if k in mat:
-            return k
+            m = dispersion.model_name(mat[k]) if k in ("n", "eps") else None
+            if m == "table":
+                return "table_n" if k == "n" else "table_eps"
+            return m or k
     return None
 
 
 def material_defaults(kind: str) -> dict:
+    if kind in DISPERSIVE_KINDS:
+        return dispersion.defaults(kind)
     return {
         "n": {"n": 1.0},
         "eps": {"eps": 1.0},
@@ -385,6 +399,11 @@ def locate_error(message: str, cfg: dict) -> tuple[str | None, int | None]:
     Unbekannt: ``(None, None)``.
     """
     msg = message.lower()
+    if error_material(message) is not None:  # JSON-Pointer in der Meldung (M22: /materials/au/n/table: …)
+        return "materials", None
+    m = re.search(r"(?<![\w/])/layers/(\d+)\b", message)
+    if m and int(m.group(1)) < len(cfg.get("layers") or []):
+        return "layers", int(m.group(1))
     m = re.search(r"unknown material '([^']*)'", message)
     if m:
         name = m.group(1)
@@ -406,6 +425,12 @@ def locate_error(message: str, cfg: dict) -> tuple[str | None, int | None]:
     if re.search(r"\brk\b|rcwa|solver|backend|precision|thread|tableau|reduction", msg):
         return "solver", None
     return None, None
+
+
+def error_material(message: str) -> str | None:
+    """Name des Materials, wenn die Meldung einen JSON-Pointer ``/materials/<name>/…`` enthält (FourierGrating M22)."""
+    m = re.search(r"(?<![\w/])/materials/([^/:\s]+)", message)
+    return m.group(1).replace("~1", "/").replace("~0", "~") if m else None
 
 
 def _layer_materials(layer: dict) -> set[str]:

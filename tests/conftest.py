@@ -134,6 +134,26 @@ def make_fake_fg(version: str = "0.18.0") -> types.ModuleType:
         f'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><title>{y}</title></svg>'
     )
     fg.cad = cad
+
+    def material_eps(cfg, name, lambda_um):
+        """Ersatz für fg.material_eps: erfundene, aber deterministische Werte; Fehler wie der Kern (JSON-Pointer)."""
+        if name not in cfg.get("materials", {}):
+            raise ValueError(f"unknown material '{name}'")
+        lam = np.asarray(lambda_um, dtype=float)
+        if (lam < 0.3).any():
+            raise ValueError(f"/materials/{name}/n/table: lambda {lam.min():g} um outside [0.3, 1.9] um")
+        return (2.0 + lam) + 0.1j * lam
+
+    fg.material_eps = material_eps
+    materials = types.ModuleType("fouriergrating.materials")
+
+    def from_refractiveindex(text):
+        if "DATA" not in text:
+            raise ValueError("not a refractiveindex.info material file (DATA missing)")
+        return {"n": {"table": {"data": [[0.4, 1.5, 0.0], [0.8, 1.6, 0.01]]}}}
+
+    materials.from_refractiveindex = from_refractiveindex
+    fg.materials = materials
     return fg
 
 

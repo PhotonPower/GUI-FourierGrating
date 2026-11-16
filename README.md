@@ -7,10 +7,11 @@ AlmaLinux-10-Server mit **NVIDIA RTX 6000 Ada**; bedient wird im Browser.
 Die GUI enthält **keine Physik**: Sie liest und schreibt Konfigurationen im JSON-Format von FourierGrating und ruft
 dessen Python-API (`fouriergrating`) auf. Rechnungen laufen im Hintergrund, die Oberfläche bleibt bedienbar.
 
-> **Status (v0.9.1):** Alle Meilensteine G0–G7 sind umgesetzt.
+> **Status (v0.11.0):** Alle Meilensteine G0–G8 sind umgesetzt.
 >
 > * **Rechnen:** Seiten *Editor* (Formulare für 1D- und 2D-Schichten, JSON), *Einzelrechnung*, *Scan*, *Nahfeld*,
->   *CAD* (STEP-Upload, Prüfung, Vorschau), *Optimierung* (L-BFGS-B mit exakten Gradienten).
+>   *CAD* (STEP-Upload, Prüfung, Vorschau), *Optimierung* (L-BFGS-B mit exakten Gradienten); dispersive Materialien
+>   (Sellmeier, Cauchy, Drude–Lorentz, Tabellen, Import aus refractiveindex.info, Materialbibliothek).
 > * **Betrieb:** Rechnungen im Hintergrund mit Warteschlange, gespeichert über Neustarts; Seiten *Rechnungen*
 >   (Download als ZIP/JSON) und *System*; Sitzungskennung in der Adresszeile (`?s=…`), optional Benutzer vom Proxy;
 >   Logging, automatisches Aufräumen, Health-Check `fg-gui-health`.
@@ -26,7 +27,7 @@ dessen Python-API (`fouriergrating`) auf. Rechnungen laufen im Hintergrund, die 
 | [`docs/deployment_rtx6000.md`](docs/deployment_rtx6000.md) | Installation auf dem Server (AlmaLinux 10, CUDA, systemd, nginx/SSH-Tunnel) |
 | [`docs/development.md`](docs/development.md) | Entwicklung: lokale Umgebung, Tests ohne Löser, Stil |
 | [`docs/architecture.md`](docs/architecture.md) | Module, Datenfluss, Hintergrundrechnungen, Schnittstelle zu FourierGrating |
-| [`docs/roadmap.md`](docs/roadmap.md) | Meilensteine G0–G7 mit Abnahmekriterien und Status |
+| [`docs/roadmap.md`](docs/roadmap.md) | Meilensteine G0–G8 mit Abnahmekriterien und Status |
 | [`AGENTS.md`](AGENTS.md) | Arbeitsregeln für KI-Agenten und Entwickler |
 | [`CHANGELOG.md`](CHANGELOG.md) | Änderungen je Version |
 

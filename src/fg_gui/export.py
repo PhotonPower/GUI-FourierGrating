@@ -11,7 +11,7 @@ import re
 import zipfile
 from typing import Any
 
-from . import nearfield, optimize, results, scans
+from . import dispersion, nearfield, optimize, results, scans, solver
 from .jobs import DONE, Job
 from .store import RunStore
 
@@ -20,6 +20,24 @@ def safe_name(label: str, fallback: str = "rechnung") -> str:
     """Dateiname ohne Pfadzeichen aus der Bezeichnung (``Nahfeld: neu.json`` → ``Nahfeld_neu``)."""
     base = re.sub(r"[^\w.\-]+", "_", label.rsplit(".", 1)[0] if label.endswith(".json") else label).strip("._")
     return base or fallback
+
+
+def _material_tables(kind: str, result: Any, cfg: dict | None) -> dict[str, bytes]:
+    """``materials.csv`` für dispersive Materialien: Einzelrechnung aus der Diagnose (n und ε wie vom Kern
+    geliefert), Scan aus ``fg.material_eps`` über die Wellenlängen des Scans (nur ε); ohne Löser entfällt es."""
+    if not cfg or not dispersion.dispersive_materials(cfg):
+        return {}
+    if kind == "solve":
+        frame = dispersion.diagnostics_frame(result.diagnostics, dispersion.first_lambda(cfg))
+    elif kind == "scan":
+        lams = sorted({float(x) for x in scans.scan_frame(result)["lambda_um"]})
+        try:
+            frame = dispersion.materials_frame(cfg, lams, lambda c, n, lam: solver.material_eps(c, n, lam))
+        except Exception:  # Löser fehlt oder FourierGrating ohne M22: Auszug entfällt, der Rest bleibt gültig
+            return {}
+    else:
+        return {}
+    return {"materials.csv": frame.to_csv(index=False).encode()} if not frame.empty else {}
 
 
 def _tables(kind: str, result: Any) -> dict[str, bytes]:
@@ -52,7 +70,10 @@ def run_zip(job: Job, store: RunStore | None) -> bytes:
             cfg = store.read_config(job.id)
             if cfg is not None:
                 z.writestr(f"{root}/config.json", json.dumps(cfg, indent=2, ensure_ascii=False))
-        for path, data in _tables(job.kind, job.result()).items():
+        cfg = store.read_config(job.id) if store is not None else None
+        tables = _tables(job.kind, job.result())
+        tables.update(_material_tables(job.kind, job.result(), cfg))
+        for path, data in tables.items():
             z.writestr(f"{root}/{path}", data)
         if store is not None and store.path(job.id).is_dir():
             for f in sorted(store.path(job.id).iterdir()):

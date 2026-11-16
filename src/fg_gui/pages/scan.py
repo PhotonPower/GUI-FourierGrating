@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from fg_gui import config_io, scans, solver
+from fg_gui import config_io, dispersion, scans, solver
 from fg_gui.cad import CadFileError
 from fg_gui.jobs import DONE, FAILED
 from fg_gui.state import job_manager, solver_info, submit_job
@@ -105,6 +105,23 @@ else:
         st.line_chart(table, x_label=scans.AXES[x], y_label=scans.QUANTITIES[quantity])
         with st.expander("Kurvendaten"):
             st.dataframe(table, width="stretch")
+
+# ---------------------------------------------------------------- dispersive Materialien
+run_cfg = job_manager().config(main_id) or {}
+if dispersion.dispersive_materials(run_cfg) and solver_info().dispersion_available:
+    with st.expander("Dispersive Materialien (ε über den Wellenlängen des Scans)"):
+        lams = sorted({float(v) for v in frame["lambda_um"]})
+        try:
+            mats = dispersion.materials_frame(run_cfg, lams, solver.material_eps)
+        except Exception as e:  # FourierGratingError mit JSON-Pointer
+            st.error(str(e))
+        else:
+            st.caption("Werte von `fg.material_eps` am Wellenlängenraster des Scans (Hauptachsen getrennt).")
+            for (mat_name, comp), part in mats.groupby(["material", "component"], sort=False):
+                st.markdown(f"**{mat_name}**" + ("" if comp == "iso" else f" – Hauptwert {comp}"))
+                st.line_chart(part, x="lambda_um", y=["eps_re", "eps_im"], height=180)
+            st.download_button("materials.csv", mats.to_csv(index=False).encode(), file_name="materials.csv",
+                               mime="text/csv")  # fmt: skip
 
 # ---------------------------------------------------------------- Tabelle und Export
 with st.expander("Alle Zeilen (Spalten wie ScanResult.columns)"):

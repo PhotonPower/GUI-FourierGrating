@@ -394,3 +394,179 @@ def test_delete_own_session(fake_fg):
 
     assert job_manager().get(job_id) is None
     assert at.session_state["fg_session"] != old_sid
+
+
+# ---------------------------------------------------------------- G8: dispersive Materialien
+def _disp_cfg() -> dict:
+    cfg = json.loads(json.dumps(EXAMPLE))
+    sio2 = {
+        "sellmeier": {"A": 1.0, "B": [0.6961663, 0.4079426], "C_um2": [0.0046791, 0.0135120], "range_um": [0.21, 6.7]}
+    }
+    cfg["materials"].update(
+        {
+            "sio2": {"n": sio2},
+            "tio2": {"n": {"cauchy": {"A": 2.4, "B_um2": 0.03}}},
+            "ag": {
+                "eps": {
+                    "drude_lorentz": {
+                        "eps_inf": 1.0, "omega_p_eV": 9.01, "f0": 0.845, "gamma0_eV": 0.048,
+                        "oscillators": [{"f": 0.065, "omega_eV": 0.816, "gamma_eV": 3.886}],
+                    }
+                }
+            },
+            "au": {"n": {"table": {"data": [[0.4, 1.5, 1.9], [0.8, 0.2, 5.0]], "interpolation": "cubic"}}},
+            "ge": {"eps": {"table": {"data": [[1.0, 16.0], [2.0, 15.0]], "unit": "eV"}}},
+            "lnb": {"eps_principal": [sio2, 4.98, {"cauchy": {"A": 2.1}}], "euler_deg": [10, 30, 0]},
+        }
+    )  # fmt: skip
+    return cfg
+
+
+def test_editor_dispersive_roundtrip_has_forms(fake_fg, tmp_path, monkeypatch):
+    cfg = _disp_cfg()
+    (tmp_path / "disp.json").write_text(json.dumps(cfg))
+    at = _editor(monkeypatch, tmp_path, "disp.json")
+    assert at.session_state["fg_cfg"] == cfg
+    assert not any("Unbekannte Materialform" in w.value for w in at.warning)
+    titles = [e.label for e in at.expander]
+    for kind in ("Sellmeier", "Cauchy", "Drude–Lorentz", "Tabelle (n, k)", "Tabelle (ε)"):
+        assert any(kind in t for t in titles), (kind, titles)
+
+
+def test_editor_edit_cauchy_value_changes_only_that(fake_fg, tmp_path, monkeypatch):
+    cfg = _disp_cfg()
+    (tmp_path / "disp.json").write_text(json.dumps(cfg))
+    at = _editor(monkeypatch, tmp_path, "disp.json")
+    field = next(n for n in at.number_input if n.label == "B (µm²)")
+    field.set_value(0.05).run()
+    assert not at.exception, at.exception
+    got = at.session_state["fg_cfg"]
+    assert got["materials"]["tio2"]["n"]["cauchy"]["B_um2"] == 0.05
+    want = json.loads(json.dumps(cfg))
+    want["materials"]["tio2"]["n"]["cauchy"]["B_um2"] = 0.05
+    assert got == want
+
+
+def test_new_dispersive_material_kind_from_selector(fake_fg):
+    at = _run("editor.py")
+    at.text_input(key=f"fg{at.session_state['fg_gen']}_newmat").set_value("quarz").run()
+    next(b for b in at.button if b.label == "Hinzufügen").click().run()
+    sel = next(s for s in at.selectbox if s.key.endswith("_mk_quarz"))
+    sel.select("sellmeier").run()
+    assert not at.exception, at.exception
+    assert at.session_state["fg_cfg"]["materials"]["quarz"] == {
+        "n": {"sellmeier": {"A": 1.0, "B": [0.6961663, 0.4079426, 0.8974794],
+                            "C_um2": [0.00467914826, 0.0135120631, 97.9340025]}}
+    }  # fmt: skip
+
+
+def test_preview_passes_through_material_eps_and_shows_errors(fake_fg, tmp_path, monkeypatch):
+    cfg = _disp_cfg()
+    (tmp_path / "disp.json").write_text(json.dumps(cfg))
+    at = _editor(monkeypatch, tmp_path, "disp.json")
+    toggles = [t for t in at.toggle if t.label == "Vorschau zeigen"]
+    assert len(toggles) == 6  # je dispersives Material
+    toggles[0].set_value(True).run()
+    assert not at.exception, at.exception
+    assert not at.error
+    assert len(at.get("vega_lite_chart")) == 2  # ε′ und ε″
+    # λ unterhalb des Tabellenbereichs: Fehler des Kerns (Ersatz) erscheint mit JSON-Pointer
+    next(n for n in at.number_input if n.label == "λ von (µm)").set_value(0.1).run()
+    assert any("/materials/" in e.value and "outside" in e.value for e in at.error)
+
+
+def test_import_csv_and_yaml_material(fake_fg):
+    at = _run("editor.py")
+    at.radio(key=f"fg{at.session_state['fg_gen']}_imp_src").set_value("CSV").run()
+    at.text_area(key=f"fg{at.session_state['fg_gen']}_imp_text").set_value("# x\n0.4, 1.5, 0.1\n0.8, 1.4, 0.2").run()
+    assert not at.exception and not at.error, (at.exception, [e.value for e in at.error])
+    next(b for b in at.button if b.label == "Material anlegen").click().run()
+    mats = at.session_state["fg_cfg"]["materials"]
+    assert mats["tabelle"] == {"n": {"table": {"data": [[0.4, 1.5, 0.1], [0.8, 1.4, 0.2]]}}}
+
+
+def test_import_bad_csv_reports_line(fake_fg):
+    at = _run("editor.py")
+    at.radio(key=f"fg{at.session_state['fg_gen']}_imp_src").set_value("CSV").run()
+    at.text_area(key=f"fg{at.session_state['fg_gen']}_imp_text").set_value("0.4 1.5\n0.5").run()
+    assert any("Zeile 2" in e.value for e in at.error)
+    assert not any(b.label == "Material anlegen" for b in at.button)  # nichts anzulegen, solange die CSV fehlerhaft ist
+
+
+def test_table_file_is_inlined_on_submit_and_guarded(fake_fg, tmp_path, monkeypatch):
+    data = tmp_path / "data"
+    (data / "materials").mkdir(parents=True)
+    (data / "materials" / "au.csv").write_text("0.4, 1.5, 1.9\n0.8, 0.2, 5.0\n")
+    outside = tmp_path / "geheim.csv"
+    outside.write_text("1 2\n2 3\n")
+    monkeypatch.setenv("FG_GUI_DATA_DIR", str(data))
+
+    def run_with(file: str) -> AppTest:
+        at = _run("editor.py")
+        cfg = json.loads(json.dumps(EXAMPLE))
+        cfg["materials"]["au"] = {"n": {"table": {"file": file}}}
+        at.session_state["fg_cfg"] = cfg
+        at.session_state["fg_cfg_name"] = "datei:x"
+        at.run()
+        next(b for b in at.button if b.label == "Rechnen").click().run()
+        return at
+
+    ok = run_with("au.csv")
+    assert not ok.exception, ok.exception
+    _wait(ok, lambda: ok.success)
+    saved = json.loads(next((data / "runs").glob("*/config.json")).read_text())
+    assert saved["materials"]["au"]["n"]["table"] == {"data": [[0.4, 1.5, 1.9], [0.8, 0.2, 5.0]]}  # kein Serverpfad
+    bad = run_with(str(outside))
+    assert any("außerhalb der erlaubten Verzeichnisse" in e.value for e in bad.error)
+    assert "fg_editor_job" not in bad.session_state
+
+
+def test_example_with_table_file_is_inlined_on_load(fake_fg, tmp_path, monkeypatch):
+    cfg = json.loads(json.dumps(EXAMPLE))
+    cfg["materials"]["au"] = {"n": {"table": {"file": "materials/au.csv", "unit": "nm"}}}
+    (tmp_path / "materials").mkdir()
+    (tmp_path / "materials" / "au.csv").write_text("400, 1.5, 1.9\n800, 0.2, 5.0\n")
+    (tmp_path / "d.json").write_text(json.dumps(cfg))
+    at = _editor(monkeypatch, tmp_path, "d.json")
+    assert at.session_state["fg_cfg"]["materials"]["au"]["n"]["table"] == {
+        "unit": "nm", "data": [[400.0, 1.5, 1.9], [800.0, 0.2, 5.0]]
+    }  # fmt: skip
+
+
+def test_scan_page_shows_dispersive_materials(fake_fg):
+    at = _run("editor.py")
+    at.session_state["fg_cfg"] = _disp_cfg()
+    at.session_state["fg_cfg_name"] = "datei:x"
+    at.switch_page(str(Path(APP).parent / "pages" / "scan.py"))
+    at.run()
+    at.button[0].click().run()
+    _wait(at, lambda: at.success)
+    assert not at.exception, at.exception
+    assert any("Dispersive Materialien" in e.label for e in at.expander)
+    assert any(d.label == "materials.csv" for d in at.get("download_button")) or at.get("download_button")
+
+
+def test_single_page_lists_dispersive_materials_from_diagnostics(fake_fg, tmp_path, monkeypatch):
+    from conftest import FakeResult
+
+    def solve(cfg):
+        r = FakeResult()
+        r.diagnostics = {"warnings": [], "materials": [{"name": "ag", "component": 0, "n": 0.13 + 2.77j,
+                                                        "eps": -7.6 + 0.7j}]}  # fmt: skip
+        return r
+
+    fake_fg.solve = solve
+    (tmp_path / "v3.json").write_text(json.dumps(EXAMPLE))
+    monkeypatch.setenv("FG_GUI_EXAMPLES_DIR", str(tmp_path))
+    at = _run("single.py")
+    at.button[0].click().run()
+    _wait(at, lambda: at.success)
+    assert not at.exception, at.exception
+    assert any(s.value == "Dispersive Materialien" for s in at.subheader)
+
+
+def test_editor_roundtrip_dispersive_example_from_fourier_grating(fake_fg, monkeypatch):
+    data = Path(__file__).parent / "data"
+    at = _editor(monkeypatch, data, "dispersive_metal_grating.json")
+    assert at.session_state["fg_cfg"] == json.loads((data / "dispersive_metal_grating.json").read_text())
+    assert not any("Unbekannte Materialform" in w.value for w in at.warning)

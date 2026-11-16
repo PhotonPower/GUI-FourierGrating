@@ -8,6 +8,7 @@ Objekt übergeben (``solver.simulation``), damit sich alles ohne FourierGrating 
 from __future__ import annotations
 
 import copy
+import re
 import threading
 import time
 from dataclasses import asdict, dataclass, field
@@ -69,12 +70,15 @@ def numeric_pointers(
 ) -> list[tuple[str, float]]:
     """Zahlen der Konfiguration unter ``roots`` (Kandidaten für Parameter), z. B. ``/layers/0/thickness_um``."""
     out: list[tuple[str, float]] = []
+    # Wellenlängen-/Energiespalte einer Tabelle (…/table/data/<i>/0) ist kein Parameter (FourierGrating M22)
+    table_x = re.compile(r"/table/data/\d+/0$")
 
     def walk(node: Any, path: str) -> None:
         if isinstance(node, bool):
             return
         if isinstance(node, (int, float)):
-            out.append((path, float(node)))
+            if not table_x.search(path):
+                out.append((path, float(node)))
         elif isinstance(node, dict):
             for k, v in node.items():
                 walk(v, f"{path}/{str(k).replace('~', '~0').replace('/', '~1')}")

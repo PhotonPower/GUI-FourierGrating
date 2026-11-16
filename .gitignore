@@ -9,7 +9,7 @@ venv/
 dist/
 build/
 # Laufzeitdaten der GUI (FG_GUI_DATA_DIR)
-data/
+/data/
 out/
 *.npy
 # lokale Einstellungen, Geheimnisse
