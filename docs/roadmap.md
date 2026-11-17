@@ -39,7 +39,7 @@ Reihenfolge wie aufgeführt (AGENTS.md).
     Aufräumen alter Ergebnisse und Uploads, Health-Check (`fg-gui-health`) fürs Monitoring
   - Danach ergänzt (0.8.1–0.9.1): Formulare für 2D-Schichten im Editor, Sitzungskennung `?s=` mit wiederhergestelltem
     Editor-Entwurf, Download fertiger Rechnungen (ZIP) und Modelle (JSON)
-- [x] **G8** Dispersive Materialien (setzt FourierGrating M22 voraus, Plan v2.18 Teil 8)
+- [x] **G8** Dispersive Materialien (setzt FourierGrating M22 voraus, enthalten ab v0.19.0; Plan v2.18 Teil 8)
   - Materialformular: neue Arten *Tabelle (n, k)*, *Tabelle (ε)*, *Sellmeier*, *Cauchy*, *Drude–Lorentz* neben n, ε,
     Hauptwerten und Tensor; bei Hauptwerten je Komponente fest oder Modell (vorerst als JSON je Komponente)
   - Tabellen: CSV hochladen oder einfügen, Einheit (µm, nm, eV), Interpolation (`linear`/`cubic`), Extrapolation
@@ -68,6 +68,6 @@ Was der GUI fehlt, wird dort ergänzt (AGENTS.md, Abschnitt 1), nicht hier nachg
   Editor Fehler am Feld anzeigen kann. Heute enthalten sie nur Quelltextposition und Text (`unknown material 'x'`);
   `config_form.locate_error` rät über Stichwörter. Negative Schichtdicken werden nicht abgelehnt.
 - Dispersion (FourierGrating M22): seit v0.19.0 in FourierGrating (`solver.MIN_VERSION` ist 0.19.0). Für die GUI offen:
-  `material_eps` und `diagnostics["materials"]` kennen nur ε bzw. n
-  der Rechenpunkte – eine Brechzahl-Vorschau (n, k) über λ ohne Rechnung bräuchte ein öffentliches `fg.material_n`
-  (heute nur privat `_core.material_values`); die Vorschau zeigt deshalb ε′ und ε″.
+  `material_eps` und `diagnostics["materials"]` kennen nur ε bzw. n der Rechenpunkte – eine Brechzahl-Vorschau (n, k)
+  über λ ohne Rechnung bräuchte ein öffentliches `fg.material_n` (heute nur privat `_core.material_values`); die
+  Vorschau zeigt deshalb ε′ und ε″.

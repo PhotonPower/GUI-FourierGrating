@@ -17,6 +17,8 @@ dessen Python-API (`fouriergrating`) auf. Rechnungen laufen im Hintergrund, die 
 >   Logging, automatisches Aufräumen, Health-Check `fg-gui-health`.
 > * Tests laufen ohne installiertes FourierGrating; Server-Installation mit systemd und nginx.
 >
+> Voraussetzung: FourierGrating ab **0.19.0** (enthält dispersive Materialien, M22).
+>
 > Roadmap: [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Dokumentation

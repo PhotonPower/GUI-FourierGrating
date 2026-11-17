@@ -99,7 +99,7 @@ Traceback.
 
 Im Editor (*Materialien*) darf ein Material eine **Funktion der Wellenlänge** sein: *Sellmeier*, *Cauchy*,
 *Drude–Lorentz* oder eine *Tabelle* (n, k bzw. ε). Ohne Modell rechnen alle Scanpunkte mit denselben Zahlen; Spektren
-über mehr als einige Nanometer sind für Metalle und Gläser dann falsch. Voraussetzung ist ein FourierGrating mit M22
+über mehr als einige Nanometer sind für Metalle und Gläser dann falsch. Voraussetzung ist FourierGrating ab Version 0.19
 (Seite *System*).
 
 * **Tabellen:** Zeilen von Hand, aus einer CSV (`λ, n, k`; Komma, Semikolon oder Leerraum; `#`-Zeilen und Kopfzeile
