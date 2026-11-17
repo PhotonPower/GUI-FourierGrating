@@ -7,7 +7,7 @@ Reihenfolge wie aufgeführt (AGENTS.md).
   - Seiten *Einzelrechnung* (JSON laden, erster Scanpunkt, Tabelle/Diagramm/Diagnose/CSV), *Rechnungen*, *System*
   - Hintergrundrechnungen (`JobManager`), Tests ohne Löser, systemd/nginx
   - Abnahme: `pytest` grün (CI); auf dem Server `pytest -m solver` grün, Seite *System* zeigt Kern `cuda12` und die
-    RTX 6000 Ada – **auf dem Zielsystem zu bestätigen**
+    RTX 6000 Ada – auf dem Zielsystem bestätigt (herkules3, 17.11.2026)
 - [x] **G1** Konfigurationseditor (2D-Schichttypen und CAD vorerst als JSON je Schicht)
   - Formulare für Grundeinstellungen (Dimension, Löser, Abbruch, Periode), Einfall (Zahl/Liste/Bereich),
     Materialien (n, [Re, Im], eps, Tensor), Superstrat/Substrat, Schichtliste (homogeneous, lamellar1d, profile1d;
