@@ -24,7 +24,6 @@ class SolverInfo:
     cuda_available: bool = False
     cad_available: bool = False
     #: ``fg.material_eps`` vorhanden (dispersive Materialien, FourierGrating M22)
-    dispersion_available: bool = False
     backend: dict = field(default_factory=dict)
     error: str = ""
 
@@ -68,7 +67,6 @@ def info() -> SolverInfo:
         core_variant=str(call("core_variant", "")),
         cuda_available=bool(call("cuda_available", False)),
         cad_available=cad_ok,
-        dispersion_available=callable(getattr(fg, "material_eps", None)),
         backend=dict(call("get_backend", {}) or {}),
     )
 

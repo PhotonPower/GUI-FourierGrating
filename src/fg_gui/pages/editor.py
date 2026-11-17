@@ -79,7 +79,6 @@ def sub(name: str) -> dict:
     return _detached.setdefault(name, {})
 
 
-disp_ok = solver_info().dispersion_available
 materials: dict = cfg["materials"] if isinstance(cfg.get("materials"), dict) else {}
 mat_names = list(materials)
 _job = job_manager().get(st.session_state.get("fg_editor_job", ""))
@@ -157,7 +156,7 @@ with tab_mat:
             if not isinstance(mat, dict) or kind is None:
                 st.warning("Unbekannte Materialform – Reiter JSON.")
             else:
-                keys = [k for k in cf.MATERIAL_KINDS if k not in cf.DISPERSIVE_KINDS or disp_ok or k == kind]
+                keys = list(cf.MATERIAL_KINDS)
                 new_kind = st.selectbox(
                     "Art", keys, index=keys.index(kind), format_func=cf.MATERIAL_KINDS.get, key=_k("mk", name)
                 )

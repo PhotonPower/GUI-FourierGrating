@@ -150,8 +150,6 @@ def dispersive_form(container, name: str, mat: dict, bump: Callable[[], None]) -
 # ---------------------------------------------------------------- Vorschau
 def preview(container, cfg: dict, name: str) -> None:
     """ε(λ) des Materials, ausgewertet von FourierGrating (``material_eps``), im Bereich des Einfalls."""
-    if not solver.info().dispersion_available:
-        return
     with container.expander("Vorschau ε(λ)"):
         if not st.toggle("Vorschau zeigen", key=wkey("pv_on", name)):
             return

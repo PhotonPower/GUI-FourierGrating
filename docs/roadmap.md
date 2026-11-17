@@ -54,8 +54,7 @@ Reihenfolge wie aufgeführt (AGENTS.md).
   - Seite *Scans*: optional n, k der dispersiven Materialien je Scanpunkt aus `diagnostics["materials"]`;
     `materials.csv` im ZIP-Download; Seite *Optimierung*: Modellwerte als Parameter anbietbar
     (`/materials/<name>/n/sellmeier/B/0` usw.)
-  - Erkennung der Fähigkeit über `solver.info().dispersion_available` statt `MIN_VERSION` (FourierGrating-Version blieb
-    0.18.0); Ersatzmodul um `material_eps` und `materials.from_refractiveindex` erweitert
+  - Voraussetzung FourierGrating ab v0.19.0 (`solver.MIN_VERSION`); Ersatzmodul um `material_eps` und `materials.from_refractiveindex` erweitert
   - Abnahme: Roundtrip Formular ↔ Konfiguration für alle neuen Beispiele von FourierGrating (verlustfrei, unbekannte
     Schlüssel bleiben); `file` → `data` gleichwertig; Vorschau-Daten unverändert aus `material_eps` durchgereicht
     (Ersatzdaten); mit `-m solver`: `examples/dispersive_metal_grating.json` (Kopie in `tests/data/`) rechnet, Vorschau-

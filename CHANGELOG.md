@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [0.11.1] – 2026-11-17
 
 ### Geändert
+- Die Abfrage `solver.info().dispersion_available` entfällt; die dispersiven Materialarten sind immer verfügbar.
 - `solver.MIN_VERSION` ist jetzt **0.19.0** (FourierGrating v0.19.0 enthält M22, dispersive Materialien); `pyproject.toml`:
   `fouriergrating>=0.19`. Ältere Kerne meldet die Seite *System* als zu alt.
 
@@ -27,8 +28,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
   ε über den Wellenlängen des Scans mit `materials.csv`; ZIP-Download enthält `materials.csv`.
 - Seite *Optimierung*: Modellwerte (`/materials/<name>/n/sellmeier/B/0` …) sind Parameter; die Wellenlängenspalte
   einer Tabelle nicht.
-- `solver.info().dispersion_available` (vorhanden, wenn `fg.material_eps` existiert); die neuen Arten erscheinen nur
-  dann. `solver.MIN_VERSION` bleibt 0.18.0, weil FourierGrating M22 ohne neue Versionsnummer liefert (Stand 16.11.2026).
+- Die neuen Materialarten erscheinen, sobald FourierGrating M22 enthält (ab v0.19.0, siehe 0.11.1).
  – 2026-11-09
 
 ### Hinzugefügt

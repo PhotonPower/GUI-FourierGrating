@@ -254,12 +254,6 @@ def test_littrow_optimization_reproduces_fourier_grating_example():
 DISPERSIVE_EXAMPLE = Path(__file__).parent / "data" / "dispersive_metal_grating.json"  # Kopie aus FourierGrating
 
 
-def _needs_dispersion():
-    info = solver.info()
-    if not info.dispersion_available:
-        pytest.skip("FourierGrating ohne M22 (fg.material_eps)")
-
-
 @pytest.mark.solver
 def test_dispersive_example_solves_and_matches_preview_values():
     import copy
@@ -268,7 +262,6 @@ def test_dispersive_example_solves_and_matches_preview_values():
 
     from fg_gui import dispersion
 
-    _needs_dispersion()
     cfg = json.loads(DISPERSIVE_EXAMPLE.read_text())
     assert dispersion.dispersive_materials(cfg) == ["ag"]
     one = copy.deepcopy(cfg)
@@ -292,7 +285,6 @@ def test_table_file_and_inline_data_give_identical_results(tmp_path):
 
     from fg_gui import dispersion
 
-    _needs_dispersion()
     cfg = json.loads(DISPERSIVE_EXAMPLE.read_text())
     cfg["incidence"]["lambda_um"] = {"from": 0.45, "to": 0.9, "steps": 4}
     rows = [[0.4 + 0.1 * i, -4.0 - 3.0 * i, 0.2 + 0.05 * i] for i in range(7)]
@@ -310,7 +302,6 @@ def test_table_file_and_inline_data_give_identical_results(tmp_path):
 def test_range_error_carries_pointer_to_the_material():
     from fg_gui import config_form
 
-    _needs_dispersion()
     cfg = json.loads(DISPERSIVE_EXAMPLE.read_text())
     cfg["incidence"]["lambda_um"] = 0.25
     cfg["materials"]["ag"] = {"eps": {"table": {"data": [[0.3, -2.0, 0.1], [0.9, -20.0, 0.5]]}}}
@@ -324,7 +315,6 @@ def test_range_error_carries_pointer_to_the_material():
 @pytest.mark.solver
 def test_import_refractiveindex_yaml_gives_a_working_material():
     pytest.importorskip("yaml")
-    _needs_dispersion()
     text = """
 REFERENCES: test
 DATA:

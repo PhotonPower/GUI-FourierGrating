@@ -108,7 +108,7 @@ else:
 
 # ---------------------------------------------------------------- dispersive Materialien
 run_cfg = job_manager().config(main_id) or {}
-if dispersion.dispersive_materials(run_cfg) and solver_info().dispersion_available:
+if dispersion.dispersive_materials(run_cfg):
     with st.expander("Dispersive Materialien (ε über den Wellenlängen des Scans)"):
         lams = sorted({float(v) for v in frame["lambda_um"]})
         try:
