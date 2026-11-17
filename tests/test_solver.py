@@ -21,7 +21,7 @@ def test_info_with_package(fake_fg):
 
 
 def test_info_old_version(monkeypatch):
-    monkeypatch.setitem(sys.modules, "fouriergrating", make_fake_fg("0.17.3"))
+    monkeypatch.setitem(sys.modules, "fouriergrating", make_fake_fg("0.18.0"))
     assert not solver.info().version_ok
 
 

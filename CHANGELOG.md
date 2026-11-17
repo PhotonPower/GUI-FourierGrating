@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.11.1] – 2026-11-17
+
+### Geändert
+- `solver.MIN_VERSION` ist jetzt **0.19.0** (FourierGrating v0.19.0 enthält M22, dispersive Materialien); `pyproject.toml`:
+  `fouriergrating>=0.19`. Ältere Kerne meldet die Seite *System* als zu alt.
+
 ## [0.11.0] – 2026-11-16
 
 ### Hinzugefügt (G8, setzt FourierGrating M22 voraus)
