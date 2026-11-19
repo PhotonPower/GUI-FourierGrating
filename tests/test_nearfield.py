@@ -107,3 +107,27 @@ def test_line_table_columns(nf):
     assert list(df.columns)[:2] == ["x_um", "y_um (fest)"]
     assert {"Ex_re", "Ex_im", "absE2", "Sy"} <= set(df.columns) and len(df) == 6
     assert (df["y_um (fest)"] == actual).all()
+
+
+# ---------------------------------------------------------------- gerechnete Linie (ny = 1, nz = 1)
+def test_line_block_sets_one_row_and_keeps_the_rest():
+    block = {"enabled": True, "nx": 800, "ny": 300, "nz": 120, "periods": 2, "vertical_z_um": 0.3,
+             "y_range_um": [-0.3, 0.6], "horizontal_y_um": 0.0, "quantities": ["E"]}  # fmt: skip
+    out = nfm.line_block(block, 0.123)
+    assert (out["ny"], out["nz"], out["y_range_um"]) == (1, 1, [0.123, 0.123])
+    assert (out["nx"], out["periods"], out["vertical_z_um"], out["quantities"]) == (800, 2, 0.3, ["E"])
+    assert block["ny"] == 300 and block["y_range_um"] == [-0.3, 0.6]  # Original unverändert
+
+
+def test_line_run_detection_and_squeeze():
+    run = make_fake_nearfield(True, {"ny": 1, "nz": 1, "y_range_um": [0.05, 0.05]})
+    assert nfm.is_line_run(run) and nfm.visible_cuts(run) == ["vertical"]
+    line = nfm.squeeze_line(run["vertical"])
+    assert not nfm.is_map(line) and line["Ex"].shape == (6,)
+    np.testing.assert_array_equal(line["Ex"], run["vertical"]["Ex"][0, :])  # unverändert durchgereicht
+    assert line["axis1_name"] == "x"
+    maps = make_fake_nearfield(True)
+    assert not nfm.is_line_run(maps) and nfm.visible_cuts(maps) == ["horizontal", "vertical"]
+    assert nfm.squeeze_line(maps["vertical"]) is maps["vertical"]
+    one_d = make_fake_nearfield(False, {"ny": 1})
+    assert not nfm.is_line_run(one_d)  # 1D: horizontaler Schnitt ist ohnehin eine Linie

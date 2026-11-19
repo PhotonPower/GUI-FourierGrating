@@ -152,6 +152,40 @@ def test_nearfield_page(fake_fg):
     assert any(n.label.startswith("Fester Wert x") for n in at.number_input)
 
 
+def test_nearfield_page_computes_a_line_in_2d(fake_fg):
+    at = _run("editor.py")
+    at.session_state["fg_cfg"]["dimension"] = "2D"
+    at.session_state["fg_cfg"]["period_um"] = {"x": 1.0, "z": 1.0}
+    at.switch_page(str(Path(APP).parent / "pages" / "nearfield.py"))
+    at.run()
+    at.button[0].click().run()  # Block mit Beispielwerten anlegen
+    mode = next(r for r in at.radio if r.label == "Rechnen")
+    mode.set_value("line").run()
+    next(n for n in at.number_input if n.label.startswith("Linie: y")).set_value(0.05).run()
+    next(b for b in at.button if b.label == "Nahfeld rechnen").click().run()
+    _wait(at, lambda: at.success)
+    assert not at.exception, at.exception
+    snap = at.session_state["fg_cfg"]["nearfield"]
+    assert snap["ny"] != 1  # der Block der Konfiguration bleibt unverändert
+    from fg_gui.state import job_manager
+
+    job = job_manager().get(at.session_state["fg_nf_job"])
+    sent = job_manager().config(job.id)["nearfield"]
+    assert (sent["ny"], sent["nz"], sent["y_range_um"]) == (1, 1, [0.05, 0.05]) and "Linie" in job.label
+    assert any("Gerechnete Linie entlang x bei y = 0.05" in c.value for c in at.caption)
+    cut_box = next(s for s in at.selectbox if s.label == "Schnitt")
+    assert list(cut_box.options) == ["Vertikaler Schnitt"]  # nur die Linie, kein horizontaler Beifang
+    assert not [r for r in at.radio if r.label == "Richtung"]  # schon eine Linie: kein 1D-Schnitt aus der Karte
+
+
+def test_nearfield_page_line_mode_only_in_2d(fake_fg):
+    at = _run("editor.py")
+    at.switch_page(str(Path(APP).parent / "pages" / "nearfield.py"))
+    at.run()
+    at.button[0].click().run()
+    assert not [r for r in at.radio if r.label == "Rechnen"]  # 1D: der horizontale Schnitt ist schon eine Linie
+
+
 def test_nearfield_page_without_config(fake_fg):
     at = AppTest.from_file(str(Path(APP).parent / "pages" / "nearfield.py"), default_timeout=30).run()
     assert not at.exception, at.exception

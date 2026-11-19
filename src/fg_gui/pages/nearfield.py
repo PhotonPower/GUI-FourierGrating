@@ -23,6 +23,7 @@ if "fg_cfg" not in st.session_state:
 cfg = st.session_state["fg_cfg"]
 name = st.session_state.get("fg_cfg_label") or st.session_state["fg_cfg_name"].split(":", 1)[-1]
 two_d = cfg.get("dimension") == "2D"
+line_mode, line_y = False, 0.0
 
 # ---------------------------------------------------------------- Einstellungen (Block "nearfield")
 block = cfg.get("nearfield")
@@ -44,6 +45,24 @@ with st.expander("Nahfeld-Einstellungen", expanded="fg_nf_job" not in st.session
         integer(c[2], "Perioden", block, "periods", 1, minimum=1)
         if two_d:
             integer(c[3], "nz", block, "nz", 100, minimum=2)
+        if two_d:
+            mode = st.radio(
+                "Rechnen",
+                ["maps", "line"],
+                format_func=lambda m: "Karten (x–y und x–z)" if m == "maps" else "Nur eine Linie entlang x",
+                horizontal=True,
+                key="fg_nf_mode",
+                help="„Linie“ rechnet genau eine Linie bei y und z₀ (vertikaler Schnitt mit ny = 1, nz = 1): "
+                "schneller, sparsamer und an der exakten Position, ohne Rundung auf ein Gitter.",
+            )
+            line_mode = mode == "line"
+            if line_mode:
+                line_y = st.number_input(
+                    "Linie: y (µm); z = z₀ des vertikalen Schnitts, Auflösung über nx",
+                    value=float(block.get("horizontal_y_um", 0.0)),
+                    format="%.10g",
+                    key="fg_nf_line_y",
+                )
         c = st.columns(2)
         options = list(dict.fromkeys([*nearfield.BLOCK_QUANTITIES, *block.get("quantities", [])]))
         chosen = c[0].multiselect("Größen", options, default=block.get("quantities", []), key=f"fg_nf_q_{id(block)}")
@@ -58,8 +77,11 @@ if not info.available:
 if isinstance(block, dict) and st.button("Nahfeld rechnen", type="primary"):
     snapshot = config_io.parse(config_io.dumps(cfg))  # Kopie
     snapshot["nearfield"]["enabled"] = True  # die Seite verlangt das Nahfeld ausdrücklich
+    if line_mode:
+        snapshot["nearfield"] = nearfield.line_block(snapshot["nearfield"], line_y)
+    label = f"Nahfeld (Linie): {name}" if line_mode else f"Nahfeld: {name}"
     try:
-        st.session_state["fg_nf_job"] = submit_job(f"Nahfeld: {name}", solver.near_field, snapshot, kind="nearfield").id
+        st.session_state["fg_nf_job"] = submit_job(label, solver.near_field, snapshot, kind="nearfield").id
     except CadFileError as e:
         st.error(str(e))
 
@@ -87,14 +109,21 @@ if job.status == FAILED:
 # ---------------------------------------------------------------- Ergebnis
 nf = job.result()
 st.success(f"{job.label}: fertig in {job.runtime:.2f} s")
-cuts = nearfield.cut_names(nf)
+cuts = nearfield.visible_cuts(nf)
 if not cuts:
     st.warning("Das Ergebnis enthält keinen Schnitt.")
     st.stop()
 
 c = st.columns(4)
 cut_name = c[0].selectbox("Schnitt", cuts, format_func=nearfield.CUT_NAMES.get)
-cut = nf[cut_name]
+cut = nearfield.squeeze_line(nf[cut_name])
+if nearfield.is_line_run(nf):
+    run_cfg = job_manager().config(job.id) or {}
+    z_line = (run_cfg.get("nearfield") or {}).get("vertical_z_um", 0.0)
+    st.caption(
+        f"Gerechnete Linie entlang x bei y = {float(nf['vertical']['axis2_um'][0]):.6g} µm und z = {z_line:.6g} µm "
+        f"({len(cut['axis1_um'])} Punkte). Der Export (.zip/.h5) enthält die Rohdaten beider Schnitte."
+    )
 available = nearfield.quantities(cut)
 quantity = c[1].selectbox("Größe", available, format_func=nearfield.quantity_label)
 complex_q = nearfield.is_complex(cut, quantity)

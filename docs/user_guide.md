@@ -52,6 +52,12 @@ Feldschnitte für den **ersten Scanpunkt** der Konfiguration aus dem *Editor*.
    anderen, z. B. entlang x bei festem y (in der x–y-Karte des vertikalen Schnitts, also bei einem z) oder entlang y
    (Tiefenprofil). Es wird die Zeile bzw. Spalte am nächstgelegenen Gitterpunkt gewählt – ohne Interpolation und ohne
    neue Rechnung; der tatsächliche Wert steht darunter. Ausgabe als Kurve und als CSV mit allen Größen.
+6. **Linie direkt rechnen** (nur 2D): Unter *Nahfeld-Einstellungen* → *Rechnen* → „Nur eine Linie entlang x“ und y
+   eingeben; z ist z₀ des vertikalen Schnitts, die Auflösung bestimmt nx. Eingereicht wird eine Kopie des Blocks mit
+   `ny = 1`, `y_range_um = [y, y]` und `nz = 1` (der Block im Editor bleibt unverändert). FourierGrating rechnet dann
+   genau eine Linie an der exakten Position – schneller und ohne Rundung auf ein Gitter; die Werte sind gleich denen
+   der Karten-Zeile bei demselben y. Angezeigt wird nur die Linie, der Export enthält die Rohdaten beider Schnitte.
+   Ein Tiefenprofil (entlang y) bei beliebigem x lässt sich so nicht rechnen: das x-Gitter des Kerns beginnt immer bei 0.
 
 ## CAD
 

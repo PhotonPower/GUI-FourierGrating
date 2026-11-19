@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.12.2] – 2026-11-19
+
+### Hinzugefügt
+- Nahfeld (2D): Rechenart **Nur eine Linie entlang x** – eingereicht wird `ny = 1`, `y_range_um = [y, y]`, `nz = 1`;
+  FourierGrating rechnet genau eine Linie an der exakten Position (Test mit dem echten Löser: gleich der Karten-Zeile).
+  Anzeige als Kurve, Rohdaten beider Schnitte im Export.
+
 ## [0.12.1] – 2026-11-19
 
 ### Hinzugefügt

@@ -85,6 +85,43 @@ def line_frame(cut: dict, quantity: str, part: str = "abs") -> pd.DataFrame:
     return pd.DataFrame({f"{name} (µm)": x, quantity_label(quantity): select(cut, quantity, part)})
 
 
+def line_block(block: dict, y_um: float) -> dict:
+    """Kopie des Blocks ``nearfield`` für eine **gerechnete** Linie entlang x bei y = ``y_um``, z = ``vertical_z_um``.
+
+    FourierGrating rechnet immer beide Schnitte: ``ny = 1`` macht den vertikalen Schnitt zu einer Zeile genau bei
+    ``y_range_um[0]`` (hier ``y_um``), ``nz = 1`` hält den mitlaufenden horizontalen Schnitt (2D) minimal. ``nx`` und
+    ``periods`` bleiben, die Linie darf also fein aufgelöst sein. Der Block in der Konfiguration bleibt unverändert.
+    """
+    out = dict(block)
+    out.update({"ny": 1, "nz": 1, "y_range_um": [float(y_um), float(y_um)]})
+    return out
+
+
+def is_line_run(nf: dict) -> bool:
+    """True, wenn das Ergebnis aus ``line_block`` stammt: vertikale Zeile (ny = 1) und horizontale Zeile (nz = 1)."""
+    v, h = nf.get("vertical"), nf.get("horizontal")
+    return (
+        isinstance(v, dict)
+        and isinstance(h, dict)
+        and is_map(v)
+        and np.size(v["axis2_um"]) == 1
+        and is_map(h)
+        and np.size(h["axis2_um"]) == 1
+    )
+
+
+def visible_cuts(nf: dict) -> list[str]:
+    """Schnitte zur Anzeige: bei einer gerechneten Linie nur sie (der horizontale Schnitt ist dann Beiwerk)."""
+    return ["vertical"] if is_line_run(nf) else cut_names(nf)
+
+
+def squeeze_line(cut: dict) -> dict:
+    """Karte mit nur einer Zeile (``ny = 1``) als Linienschnitt; andere Schnitte unverändert."""
+    if is_map(cut) and np.size(cut["axis2_um"]) == 1:
+        return line_of_map(cut, 0, float(np.asarray(cut["axis2_um"]).ravel()[0]))[0]
+    return cut
+
+
 def nearest(values: np.ndarray, at: float) -> int:
     """Index des Gitterpunkts, der ``at`` am nächsten liegt (keine Interpolation)."""
     return int(np.argmin(np.abs(np.asarray(values, dtype=float) - at)))

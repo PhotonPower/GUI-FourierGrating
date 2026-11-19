@@ -330,3 +330,50 @@ DATA:
     cfg["incidence"]["lambda_um"] = 0.6
     cfg["materials"]["ag"] = mat
     assert solver.solve(cfg).transmitted is not None
+
+
+# ---------------------------------------------------------------- gerechnete Linie (Nahfeld ny = 1, nz = 1)
+@pytest.mark.solver
+def test_computed_nearfield_line_equals_row_of_the_map():
+    import copy
+
+    import numpy as np
+
+    from fg_gui import config_form, nearfield
+
+    cfg = config_form.default_config()
+    cfg["nearfield"] = nearfield.default_block("1D")
+    cfg["nearfield"].update({"y_range_um": [-0.1, 0.5], "ny": 7, "nx": 40, "periods": 1, "vertical_z_um": 0.0})
+    full = solver.near_field(cfg)["vertical"]
+    y = float(full["axis2_um"][3])  # ein Gitterpunkt der Karte
+    run_cfg = copy.deepcopy(cfg)
+    run_cfg["nearfield"] = nearfield.line_block(cfg["nearfield"], y)
+    run = solver.near_field(run_cfg)
+    assert nearfield.is_line_run(run) or run["vertical"]["axis2_um"].size == 1
+    row = run["vertical"]
+    assert row["axis2_um"].size == 1 and float(row["axis2_um"][0]) == pytest.approx(y)
+    for q in ("Ex", "Ey", "absE2"):
+        np.testing.assert_allclose(row[q][0], full[q][3], rtol=1e-9, atol=1e-12)
+    line = nearfield.squeeze_line(row)
+    assert not nearfield.is_map(line) and len(line["axis1_um"]) == 40
+
+
+@pytest.mark.solver
+def test_computed_nearfield_line_in_2d_matches_map_row_and_is_a_line_run():
+    import copy
+
+    import numpy as np
+
+    from fg_gui import nearfield
+
+    cfg = json.loads(
+        (Path(__file__).parent / "data" / "nearfield_pillars_2d.json").read_text()
+    )  # Kopie aus FourierGrating
+    full = solver.near_field(cfg)
+    i = len(full["vertical"]["axis2_um"]) // 2
+    run_cfg = copy.deepcopy(cfg)
+    run_cfg["nearfield"] = nearfield.line_block(cfg["nearfield"], float(full["vertical"]["axis2_um"][i]))
+    run = solver.near_field(run_cfg)
+    assert nearfield.is_line_run(run) and nearfield.visible_cuts(run) == ["vertical"]
+    assert run["vertical"]["Ex"].shape == (1, cfg["nearfield"]["nx"])
+    np.testing.assert_allclose(run["vertical"]["Ex"][0], full["vertical"]["Ex"][i], rtol=1e-9, atol=1e-12)

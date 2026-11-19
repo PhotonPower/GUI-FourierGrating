@@ -46,9 +46,16 @@ class FakeScan:
         self.points = [FakeResult() for _ in range(4)]
 
 
-def make_fake_nearfield(two_d: bool = False) -> dict:
-    """Zwei Schnitte wie ``fg.near_field``: vertikale Karte (4 × 6) und horizontale Linie bzw. Karte."""
+def make_fake_nearfield(two_d: bool = False, block: dict | None = None) -> dict:
+    """Zwei Schnitte wie ``fg.near_field``: vertikale Karte (4 × 6) und horizontale Linie bzw. Karte.
+
+    Wie der Kern beachtet das Ersatzmodul ``ny`` (Zeilen des vertikalen Schnitts, bei 1 genau bei ``y_range_um[0]``)
+    und ``nz`` (Zeilen des horizontalen Schnitts in 2D); ohne Block gelten 4.
+    """
     rng = np.random.default_rng(1)
+    block = block or {}
+    ny, nz = int(block.get("ny", 4)), int(block.get("nz", 4))
+    y_lo, y_hi = (block.get("y_range_um") or [-0.2, 0.4])[:2]
 
     def cut(name, ax2, n2):
         shape = (n2, 6) if n2 else (6,)
@@ -58,7 +65,9 @@ def make_fake_nearfield(two_d: bool = False) -> dict:
             "axis1_name": "x",
             "axis2_name": ax2,
             "axis1_um": np.linspace(0, 1, 6),
-            "axis2_um": np.linspace(-0.2, 0.4, n2) if n2 else np.zeros(0),
+            "axis2_um": (np.array([y_lo]) if n2 == 1 and name == "vertical" else np.linspace(y_lo, y_hi, n2))
+            if n2
+            else np.zeros(0),
             "lambda_um": 0.6328,
             "meta": {"axes": {"axis1": {"name": "x"}}, "cut": name},
         }
@@ -71,8 +80,8 @@ def make_fake_nearfield(two_d: bool = False) -> dict:
         return d
 
     return {
-        "horizontal": cut("horizontal", "z" if two_d else "y", 4 if two_d else 0),
-        "vertical": cut("vertical", "y", 4),
+        "horizontal": cut("horizontal", "z" if two_d else "y", nz if two_d else 0),
+        "vertical": cut("vertical", "y", ny),
         "incidence": {"lambda_um": 0.6328, "phi_deg": 10.0, "psi_deg": 0.0, "delta_deg": 90.0},
     }
 
@@ -109,7 +118,7 @@ def make_fake_fg(version: str = "0.19.0") -> types.ModuleType:
     fg.solve = lambda cfg: FakeResult()
     fg.solve_scan = lambda cfg: FakeScan()
     fg.Simulation = FakeSimulation
-    fg.near_field = lambda cfg: make_fake_nearfield(cfg.get("dimension") == "2D")
+    fg.near_field = lambda cfg: make_fake_nearfield(cfg.get("dimension") == "2D", cfg.get("nearfield"))
     cad = types.ModuleType("fouriergrating.cad")
     cad.available = lambda: True
 

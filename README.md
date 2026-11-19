@@ -7,7 +7,7 @@ AlmaLinux-10-Server mit **NVIDIA RTX 6000 Ada**; bedient wird im Browser.
 Die GUI enthält **keine Physik**: Sie liest und schreibt Konfigurationen im JSON-Format von FourierGrating und ruft
 dessen Python-API (`fouriergrating`) auf. Rechnungen laufen im Hintergrund, die Oberfläche bleibt bedienbar.
 
-> **Status (v0.12.1):** Alle Meilensteine G0–G9 sind umgesetzt.
+> **Status (v0.12.2):** Alle Meilensteine G0–G9 sind umgesetzt.
 >
 > * **Rechnen:** Seiten *Editor* (Formulare für 1D- und 2D-Schichten, JSON), *Einzelrechnung*, *Scan*, *Nahfeld* (mit 1D-Linienschnitten),
 >   *CAD* (STEP-Upload, Prüfung, Vorschau), *Optimierung* (L-BFGS-B mit exakten Gradienten); dispersive Materialien
