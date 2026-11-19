@@ -20,7 +20,7 @@ sudo -u fggui git clone https://github.com/PhotonPower/GUI-FourierGrating.git /o
 ```
 
 Für private Repositories einen Deploy-Key oder den Git-Credential-Helper verwenden – **keine Tokens in URLs**.
-Für reproduzierbare Stände FourierGrating auf ein Tag setzen (`git -C /opt/fg-gui/FourierGrating checkout v0.19.0`).
+Für reproduzierbare Stände FourierGrating auf ein Tag setzen (`git -C /opt/fg-gui/FourierGrating checkout v0.20.0`).
 
 ## 3. Installation
 

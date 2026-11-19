@@ -57,7 +57,7 @@ Jobs leben im Speicher des Serverprozesses (gehen bei Neustart verloren) und sin
 
 ## Schnittstelle zu FourierGrating
 
-Genutzt (ab FourierGrating 0.19.0, `solver.MIN_VERSION`): `__version__`, `core_variant()`, `cuda_available()`,
+Genutzt (ab FourierGrating 0.20.0, `solver.MIN_VERSION`): `__version__`, `core_variant()`, `cuda_available()`,
 `get_backend()`, `cad.available()`, `cad.check`, `solve`, `solve_scan`, `near_field`, `Simulation` (`set_parameter`,
 `value_and_grad`), `material_eps`, `materials.from_refractiveindex`. Konfigurationen sind reine `dict`s im JSON-Schema von FourierGrating – die GUI
 erzeugt nie eigene Formate, sodass jede Konfiguration auch mit `fgsolve` rechenbar ist.

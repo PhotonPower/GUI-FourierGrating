@@ -22,7 +22,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-solver = ["fouriergrating>=0.19"]
+solver = ["fouriergrating>=0.20"]
 dev = ["pytest>=7", "ruff>=0.5"]
 
 [project.scripts]

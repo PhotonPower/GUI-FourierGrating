@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [Unreleased]
+
+### Geändert
+- Mindestversion FourierGrating 0.20.0 (`solver.MIN_VERSION`, Extra `solver`): CAD-Schichten in 1D-Gittern (M23).
+  Roadmap korrigiert: 1D-CAD ist in FourierGrating vorhanden (z-invariante Körper; nicht z-invariante melden
+  `NOT_Z_INVARIANT`), offen ist die Freigabe in der GUI.
+
 ## [0.12.2] – 2026-11-19
 
 ### Hinzugefügt

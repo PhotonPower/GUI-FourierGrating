@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 #: älteste FourierGrating-Version, gegen die die GUI geprüft ist
-MIN_VERSION = (0, 19, 0)
+MIN_VERSION = (0, 20, 0)
 
 
 @dataclass(frozen=True)
