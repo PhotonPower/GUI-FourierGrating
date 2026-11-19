@@ -153,3 +153,44 @@ def test_cad_check_in_1d_has_one_profile_preview(fake_fg):
     assert out["previews"][0]["y_um"] is None and out["previews"][0]["svg"].startswith("<svg")
     out2 = solver.cad_check({"dimension": "2D", **{k: v for k, v in cfg.items() if k != "dimension"}})
     assert len(out2["previews"]) == len(out2["report"]["bands"]) and out2["previews"][0]["y_um"] == 0.1
+
+
+# ---------------------------------------------------------------- einfache Linie (1D)
+LINE_STEP = Path(__file__).parent / "data" / "cad" / "line_grating.step"
+
+
+def test_line_info_scales_width_to_period():
+    text = LINE_STEP.read_text()
+    info = cad.line_info(text, 0.3)
+    assert info["name"] == "Line"
+    assert info["height_um"] == pytest.approx(0.1 * 0.3 / info["width"])
+    lo, hi = cad.step_extent(cad.scale_step(text, info["scale"]))
+    assert hi[0] - lo[0] == pytest.approx(0.3)  # Breite = Periode
+    assert hi[2] - lo[2] == pytest.approx(info["height_um"])  # Proportionen bleiben
+
+
+def test_scale_step_scales_radii_but_not_angles_or_directions():
+    text = (
+        "#1=CARTESIAN_POINT('',(1.,2.,3.));\n#2=DIRECTION('',(0.,0.,1.));\n#3=CIRCLE('',#9,0.5);\n"
+        "#4=CONICAL_SURFACE('',#9,2.,0.3);\n#5=ELLIPSE('',#9,2.,1.);\n"
+    )
+    out = cad.scale_step(text, 10.0)
+    assert "(10.0,20.0,30.0)" in out
+    assert "DIRECTION('',(0.,0.,1.))" in out
+    assert "CIRCLE('',#9,5.0)" in out
+    assert "CONICAL_SURFACE('',#9,20.0,0.3)" in out
+    assert "ELLIPSE('',#9,20.0,10.0)" in out
+
+
+def test_line_info_rejects_several_bodies_and_bad_period():
+    with pytest.raises(cad.CadFileError, match="genau einen"):
+        cad.line_info(FAKE_STEP, 0.3)
+    with pytest.raises(cad.CadFileError, match="Periode"):
+        cad.line_info(LINE_STEP.read_text(), 0.0)
+
+
+def test_line_layer_maps_below_to_body_and_above_to_background():
+    layer = cad.line_layer({"name": "Line"}, "/x.step", "si", "air")
+    assert layer["bodies"] == [{"name": "Line", "material": "si"}]
+    assert layer["background"] == "air" and layer["unit"] == "um" and layer["type"] == "cad"
+    assert cad.line_layer({"name": ""}, "/x.step", "si", "air")["bodies"][0]["index"] == 0

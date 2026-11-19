@@ -436,3 +436,22 @@ def test_cad_1d_rejects_non_z_invariant_body_quickly():
     cfg["layers"][0]["bodies"] = [{"name": "Pillar", "material": "si"}, {"name": "Lid", "material": "resist"}]
     report = solver.cad_check(cfg)["report"]
     assert not report["ok"] and any(e["code"] == "NOT_Z_INVARIANT" for e in report["errors"])
+
+
+@pytest.mark.solver
+def test_cad_1d_line_scaled_to_period(tmp_path):
+    """Skalierte Linie (Editor): Breite = Periode, die Höhe stimmt mit dem Prüfbericht überein."""
+    from fg_gui import cad
+
+    text = (Path(__file__).parent / "data" / "cad" / "line_grating.step").read_text()
+    info = cad.line_info(text, 0.5)
+    path = cad.save_upload(cad.scale_step(text, info["scale"]).encode(), tmp_path)
+    cfg = _line_grating_cfg()
+    cfg["period_um"]["x"] = 0.5
+    cfg["layers"] = [cad.line_layer(info, str(path), "resist", "air")]
+    report = solver.cad_check(cfg)["report"]
+    assert report["ok"], report
+    assert report["bands"][-1]["y1_um"] - report["bands"][0]["y0_um"] == pytest.approx(info["height_um"], rel=1e-6)
+    res = solver.solve({**cfg, "incidence": {**cfg["incidence"], "lambda_um": 0.5}})
+    tot = results.totals(res)
+    assert tot["ΣR"] + tot["ΣT"] + tot["Absorption"] == pytest.approx(1.0, abs=1e-6)

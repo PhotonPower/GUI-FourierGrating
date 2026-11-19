@@ -2,6 +2,17 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.14.0] – 2026-11-19
+
+### Hinzugefügt
+- **Einfache Linie aus STEP im Editor (G11, 1D):** Reiter *Schichten* → Menü „Neue Schicht“ → „cad: Linie aus STEP-Datei“ (nur 1D). Die Datei
+  enthält genau einen Körper mit den richtigen Proportionen (Fläche unter der Linie über die ganze Periode, entlang z
+  extrudiert). Die GUI skaliert die STEP-Koordinaten (Punkte, Radien) so, dass die Breite (CAD x) der Periode Λ
+  entspricht; die Höhe folgt aus den Proportionen und wird vorab angezeigt. Material unterhalb = Körper, Material
+  oberhalb = `background`; die Schicht (`unit: um`) wird mit der skalierten Datei in `uploads/` angelegt. Die
+  komplizierte Variante (mehrere Körper, Einstellungen) bleibt auf der Seite *CAD*.
+- `cad.step_extent`, `cad.scale_step`, `cad.line_info`, `cad.line_layer`; Tests (Einheit, AppTest, echter Löser).
+
 ## [0.13.0] – 2026-11-19
 
 ### Hinzugefügt

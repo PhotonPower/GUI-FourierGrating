@@ -64,6 +64,82 @@ def body_names(step_text: str) -> list[str]:
     return [m.group(1) for m in re.finditer(r"MANIFOLD_SOLID_BREP\s*\(\s*'([^']*)'", step_text)]
 
 
+# ---------------------------------------------------------------- einfache Linie (1D): STEP skalieren
+_NUM = r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
+_POINT = re.compile(r"(#(\d+)\s*=\s*CARTESIAN_POINT\s*\(\s*'[^']*'\s*,\s*\()([^)]*)(\))")
+_VERTEX = re.compile(r"VERTEX_POINT\s*\(\s*'[^']*'\s*,\s*#(\d+)")
+_RADII = re.compile(
+    rf"\b(?P<head>(?P<name>CIRCLE|ELLIPSE|CYLINDRICAL_SURFACE|SPHERICAL_SURFACE|CONICAL_SURFACE|TOROIDAL_SURFACE)"
+    rf"\s*\(\s*'[^']*'\s*,\s*#\d+\s*,\s*)(?P<a>{_NUM})(?:(?P<sep>\s*,\s*)(?P<b>{_NUM}))?"
+)
+
+
+def _coords(text: str) -> list[float]:
+    return [float(v) for v in re.findall(_NUM, text)]
+
+
+def step_extent(step_text: str) -> tuple[list[float], list[float]]:
+    """Hüllquader (min, max; CAD x, y, z) der Eckpunkte der Datei; ohne Eckpunkte aller Punkte.
+
+    Nur Eckpunkte, weil die Kontrollpunkte von NURBS-Flächen über den Körper hinausragen dürfen.
+    """
+    points = {int(m.group(2)): _coords(m.group(3)) for m in _POINT.finditer(step_text)}
+    ids = {int(m.group(1)) for m in _VERTEX.finditer(step_text)}
+    chosen = [points[i] for i in ids if i in points and len(points[i]) == 3] or [
+        p for p in points.values() if len(p) == 3
+    ]
+    if not chosen:
+        raise CadFileError("In der STEP-Datei wurden keine Punkte gefunden.")
+    return [min(p[k] for p in chosen) for k in range(3)], [max(p[k] for p in chosen) for k in range(3)]
+
+
+def scale_step(step_text: str, factor: float) -> str:
+    """STEP-Text mit gleichmäßig um ``factor`` skalierter Geometrie (Punkte und Radien; Richtungen bleiben)."""
+
+    def point(m: re.Match) -> str:
+        return m.group(1) + ",".join(repr(v * factor) for v in _coords(m.group(3))) + m.group(4)
+
+    def radii(m: re.Match) -> str:
+        out = m.group("head") + repr(float(m.group("a")) * factor)
+        if m.group("b") is not None:
+            b = float(m.group("b")) * (1.0 if m.group("name") == "CONICAL_SURFACE" else factor)  # Kegel: Winkel
+            out += m.group("sep") + repr(b)
+        return out
+
+    return _RADII.sub(radii, _POINT.sub(point, step_text))
+
+
+def line_info(step_text: str, period_um: float) -> dict:
+    """Maße einer einfachen Linie: Breite und Höhe in der Datei, Maßstab auf die Periode und Höhe danach (µm).
+
+    Breite = Ausdehnung in CAD x, Höhe = Ausdehnung in CAD z (Achsen ``y = +Z``, ``x = +X``, wie in ``new_layer``).
+    """
+    names = body_names(step_text)
+    if len(names) != 1:
+        raise CadFileError(f"Die Datei muss genau einen Körper enthalten (gefunden: {len(names)}).")
+    lo, hi = step_extent(step_text)
+    width, height = hi[0] - lo[0], hi[2] - lo[2]
+    if width <= 0 or height <= 0:
+        raise CadFileError("Breite oder Höhe des Körpers ist 0.")
+    if period_um <= 0:
+        raise CadFileError("Die Periode muss größer als 0 sein.")
+    scale = period_um / width
+    return {"name": names[0], "width": width, "height": height, "scale": scale, "height_um": height * scale}
+
+
+def line_layer(info: dict, file: str, below: str, above: str) -> dict:
+    """CAD-Schicht für die skalierte Linie: Körper = Material unterhalb, Hintergrund = Material oberhalb."""
+    body = {"name": info["name"]} if info["name"] else {"index": 0}
+    return {
+        "type": "cad",
+        "file": file,
+        "unit": "um",
+        "axes": {"y": "+Z", "x": "+X"},
+        "background": above,
+        "bodies": [{**body, "material": below}],
+    }
+
+
 def save_upload(data: bytes, directory: Path) -> Path:
     """Legt eine hochgeladene STEP-Datei unter ``<sha256 (16 Zeichen)>.step`` ab (gleicher Inhalt = gleiche Datei)."""
     if not looks_like_step(data):

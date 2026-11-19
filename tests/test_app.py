@@ -722,3 +722,14 @@ def test_editor_roundtrip_dispersive_example_from_fourier_grating(fake_fg, monke
     at = _editor(monkeypatch, data, "dispersive_metal_grating.json")
     assert at.session_state["fg_cfg"] == json.loads((data / "dispersive_metal_grating.json").read_text())
     assert not any("Unbekannte Materialform" in w.value for w in at.warning)
+
+
+def test_editor_offers_line_import_only_in_1d(fake_fg, tmp_path, monkeypatch):
+    monkeypatch.setenv("FG_GUI_DATA_DIR", str(tmp_path / "data"))
+    for dim, expected in (("1D", True), ("2D", False)):
+        at = _cad_page(_cad_cfg("x.step", dimension=dim))
+        at.switch_page(str(Path(APP).parent / "pages" / "editor.py"))
+        at.run()
+        assert not at.exception, at.exception
+        opts = next(b for b in at.selectbox if b.label == "Neue Schicht").options
+        assert ("cad: Linie aus STEP-Datei" in opts) is expected, dim

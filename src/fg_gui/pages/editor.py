@@ -6,11 +6,11 @@ import json
 import pandas as pd
 import streamlit as st
 
+from fg_gui import cad, config_io, dispersion, material_forms, nearfield, results, solver, structure
 from fg_gui import config_form as cf
-from fg_gui import config_io, dispersion, material_forms, nearfield, results, solver, structure
 from fg_gui.cad import CadFileError
 from fg_gui.jobs import DONE, FAILED
-from fg_gui.state import inline_tables, job_manager, materials_dir, settings, solver_info, submit_job
+from fg_gui.state import inline_tables, job_manager, materials_dir, settings, solver_info, submit_job, uploads_dir
 from fg_gui.widgets import choice, complex_input, integer, number, show_estimate, text_list
 
 st.title("Editor")
@@ -339,15 +339,53 @@ with tab_layers:
                         st.rerun()
                     except config_io.ConfigError as e:
                         st.error(str(e))
+    line_option = "cad: Linie aus STEP-Datei"
+    options = cf.layer_types(cfg.get("dimension"))
+    if cfg.get("dimension") != "2D":
+        options = [*options, line_option]
     c = st.columns([2, 1])
-    add_type = c[0].selectbox(
-        "Neue Schicht", cf.layer_types(cfg.get("dimension")), key=_k("addtype"), label_visibility="collapsed"
-    )
-    if c[1].button("Schicht hinzufügen"):
-        layers.append(cf.new_layer(add_type, mat_names, per.get("x", 1.0), per.get("z", 1.0)))
-        cfg["layers"] = layers
-        _bump()
-        st.rerun()
+    add_type = c[0].selectbox("Neue Schicht", options, key=_k("addtype"), label_visibility="collapsed")
+    if add_type != line_option:
+        if c[1].button("Schicht hinzufügen"):
+            layers.append(cf.new_layer(add_type, mat_names, per.get("x", 1.0), per.get("z", 1.0)))
+            cfg["layers"] = layers
+            _bump()
+            st.rerun()
+    else:
+        st.caption(
+            "Die Datei enthält genau einen Körper mit den richtigen Proportionen: ein Profil, das die ganze "
+            "Periode in x ausfüllt und nach unten bis zum Schichtanfang reicht (Fläche unter der Linie), entlang "
+            "z extrudiert. Die Breite wird auf die Periode Λ skaliert, die Höhe folgt aus den Proportionen. "
+            "Achsen: x = CAD X, y = CAD Z. Mehrere Körper, Toleranzen und Einstellungen: Seite *CAD*. "
+            "Die Schicht lässt sich beliebig oft hinzufügen."
+        )
+        up = st.file_uploader("STEP-Datei (.step, .stp)", type=["step", "stp"], key=_k("lineup"))
+        c = st.columns(2)
+        sub_i = mat_names.index(cfg["substrate"]) if cfg.get("substrate") in mat_names else 0
+        sup_i = mat_names.index(cfg["superstrate"]) if cfg.get("superstrate") in mat_names else 0
+        below = c[0].selectbox("Material unterhalb der Linie", mat_names, index=sub_i, key=_k("linebelow"))
+        above = c[1].selectbox("Material oberhalb der Linie", mat_names, index=sup_i, key=_k("lineabove"))
+        if up is not None:
+            text = up.getvalue().decode("utf-8", errors="replace")
+            try:
+                if not cad.looks_like_step(text):
+                    raise CadFileError("Das ist keine STEP-Datei (sie beginnt nicht mit „ISO-10303-21“).")
+                info = cad.line_info(text, float(per.get("x") or 0.0))
+            except CadFileError as e:
+                st.error(str(e))
+            else:
+                st.write(
+                    f"Körper „{info['name'] or '#0'}“: Breite {info['width']:.6g} × Höhe {info['height']:.6g} "
+                    f"(Einheit der Datei). Skaliert auf Λ = {float(per['x']):.6g} µm: "
+                    f"**Höhe {info['height_um']:.6g} µm** (Faktor {info['scale']:.6g})."
+                )
+                if st.button("Als CAD-Schicht hinzufügen", disabled=not (below and above), key=_k("lineadd")):
+                    path = cad.save_upload(cad.scale_step(text, info["scale"]).encode(), uploads_dir())
+                    layers.append(cad.line_layer(info, str(path), below, above))
+                    cfg["layers"] = layers
+                    _bump()
+                    st.rerun()
+        st.caption("Danach auf der Seite *CAD* „Prüfen“ – dort stehen Bänder und Vorschau.")
 
 with tab_struct:
     st.caption(

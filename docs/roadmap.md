@@ -68,6 +68,7 @@ Reihenfolge wie aufgeführt (AGENTS.md).
   - Abnahme: HDF5 lesbar für alle Arten (Test mit `h5py`); Linien identisch zu Zeile/Spalte der Karte; alle Beispiele
     von FourierGrating lassen sich zeichnen; mit `-m solver`: gerechnete Linie (1D und 2D) gleich der Karten-Zeile
 - [x] **G10** CAD in 1D-Gittern (FourierGrating M23, ab 0.20.0) (0.13.0)
+- [x] **G11** Einfache Linie aus STEP im Editor (1D): auf die Periode skaliert, Material unter/über der Linie (0.14.0)
   - Seite *CAD*: Hinweis auf z-invariante Körper, Zellursprung nur x₀, `z_cut_um` optional, keine Schnitthöhen, Normalenfeld
     nur Raster; Bänder mit Längenanteilen, eine Vorschau (Profil in (x, y)); `NOT_Z_INVARIANT` erklärt; Warnung bei
     `z_cut_um` in 2D

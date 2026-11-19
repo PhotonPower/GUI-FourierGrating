@@ -76,6 +76,13 @@ voraus (Seite *System*: „CAD-Slicer“). Die Seite arbeitet an der Konfigurati
 
 Danach rechnet *Einzelrechnung*, *Scan* oder *Nahfeld* die Konfiguration wie jede andere.
 
+**Einfache Linie im Editor (1D).** Reiter *Schichten* → Menü „Neue Schicht“ → „cad: Linie aus STEP-Datei“ (nur 1D): STEP-Datei mit genau einem
+Körper hochladen, der die ganze Periode ausfüllt (Fläche unter der Linie, entlang z extrudiert, Proportionen wie
+gewünscht). Die GUI skaliert die Datei so, dass die Breite (CAD x) der Periode Λ entspricht, und zeigt die sich
+ergebende Höhe. Wählen Sie das **Material unterhalb** (Körper) und **oberhalb** (Hintergrund) der Linie und fügen Sie
+die Schicht hinzu; danach auf der Seite *CAD* prüfen. Achsen: x = CAD X, y = CAD Z. Grenzen: nur Eckpunkte bestimmen die
+Breite (NURBS, die über die Eckpunkte hinausragen, werden nicht berücksichtigt).
+
 **1D-Gitter (ab FourierGrating 0.20.0).** Bei `dimension: 1D` liest FourierGrating z-invariante Körper, also Linien eines
 Liniengitters, die entlang z extrudiert sind (Standard: −CAD Y; die Länge ist beliebig). Der Körper wird einmal bei
 z = z_cut geschnitten und mit dem Profil in (x, y) gerechnet. Die Seite zeigt dann:
