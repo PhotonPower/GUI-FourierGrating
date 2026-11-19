@@ -4,6 +4,8 @@ import logging
 import os
 import time
 
+import pytest
+
 from conftest import FakeResult
 from fg_gui import health, housekeeping, logs, users
 from fg_gui import settings as st_settings
@@ -267,3 +269,88 @@ def test_run_zip_has_materials_csv_for_dispersive_runs(tmp_path, fake_fg):
     lines, _ = names_and_csv(scan)
     assert lines[0] == "lambda_um,material,component,eps_re,eps_im" and len(lines) == 3  # λ = 0.5 und 0.6
     assert names_and_csv(plain)[0] is None  # ohne dispersive Materialien keine Datei
+
+
+# ---------------------------------------------------------------- Download als HDF5
+def test_run_h5_for_each_kind(tmp_path):
+    import io
+    import json as _json
+
+    import h5py
+
+    from conftest import FakeScan, make_fake_nearfield
+    from fg_gui import h5export
+
+    jm = JobManager(store=RunStore(tmp_path / "runs"))
+    cfg = {"dimension": "1D", "materials": {"air": {"n": 1.0}}}
+    res = {"value": 1.0, "x": [2.0], "start": [1.0], "history": [
+        {"eval": 1, "value": 0.5, "best": 0.5, "grad_norm": 0.1, "x": [1.0]}]}  # fmt: skip
+    made = {
+        "solve": jm.submit("Test: a/b.json", FakeResult, kind="solve", config=cfg, owner="abcd1234"),
+        "scan": jm.submit("scan", lambda: FakeScan("/p"), kind="scan", config=cfg),
+        "nearfield": jm.submit("nf", make_fake_nearfield, kind="nearfield", config=cfg),
+        "optimize": jm.submit("opt", lambda: res, kind="optimize", config=cfg),
+    }
+    for j in made.values():
+        j.future.result()
+
+    def load(kind):
+        return h5py.File(io.BytesIO(h5export.run_h5(made[kind], jm.store)), "r")
+
+    for kind in made:
+        with load(kind) as f:
+            assert f.attrs["format"] == h5export.FORMAT and f.attrs["kind"] == kind
+            assert _json.loads(f["config"][()].decode()) == cfg
+            assert _json.loads(f["meta"][()].decode())["id"] == made[kind].id
+    with load("solve") as f:
+        assert f["result/reflected"].shape == (2,) and f["result/transmitted"]["eff"][0] == 0.7
+        assert f.attrs["owner"] == "abcd1234" and abs(f["result"].attrs["ΣR"] - 0.3) < 1e-12
+    with load("scan") as f:
+        assert f["result/columns/side"].asstr()[0] == "R" and f["result/columns/lambda_um"].shape[0] == 10
+        assert f["result"].attrs["sweep_parameter"] == "/p"
+    with load("nearfield") as f:
+        nf = make_fake_nearfield()
+        assert set(f["result"]) == {"horizontal", "vertical"}
+        assert (f["result/vertical/Ex"][()] == nf["vertical"]["Ex"]).all()  # komplex, unverändert
+        assert f["result/vertical/axis1_um"].shape == (6,) and f["result/vertical"].attrs["axis1_name"] == "x"
+    with load("optimize") as f:
+        assert f["result"].attrs["value"] == 1.0 and f["result/history/Zielwert"][0] == 0.5
+
+
+def test_run_h5_refuses_unfinished(tmp_path):
+    import threading
+
+    from fg_gui import h5export
+
+    jm = JobManager(store=RunStore(tmp_path / "runs"))
+    gate = threading.Event()
+    busy = jm.submit("busy", gate.wait, kind="")
+    try:
+        with pytest.raises(ValueError):
+            h5export.run_h5(busy, jm.store)
+    finally:
+        gate.set()
+
+
+def test_run_h5_has_materials_for_dispersive_runs(tmp_path, fake_fg):
+    import io
+
+    import h5py
+
+    from fg_gui import h5export
+
+    cfg = {
+        "incidence": {"lambda_um": [0.5]},
+        "materials": {"air": {"n": 1.0}, "ag": {"eps": {"drude_lorentz": {"eps_inf": 1.0}}}},
+    }
+
+    def solve():
+        r = FakeResult()
+        r.diagnostics = {"materials": [{"name": "ag", "component": 0, "n": 0.1 + 2.7j, "eps": -7.0 + 0.7j}]}
+        return r
+
+    jm = JobManager(store=RunStore(tmp_path / "runs"))
+    job = jm.submit("einzel", solve, kind="solve", config=cfg)
+    job.future.result()
+    with h5py.File(io.BytesIO(h5export.run_h5(job, jm.store)), "r") as f:
+        assert f["materials/eps_re"][0] == -7.0 and f["materials/material"].asstr()[0] == "ag"

@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 from fg_gui import config_form as cf
-from fg_gui import config_io, dispersion, material_forms, results, solver
+from fg_gui import config_io, dispersion, material_forms, nearfield, results, solver, structure
 from fg_gui.cad import CadFileError
 from fg_gui.jobs import DONE, FAILED
 from fg_gui.state import inline_tables, job_manager, materials_dir, settings, solver_info, submit_job
@@ -93,8 +93,8 @@ def section_error(section: str, layer: int | None = None) -> None:
 
 
 # ---------------------------------------------------------------- Reiter
-tab_basis, tab_inc, tab_mat, tab_layers, tab_solver, tab_json = st.tabs(
-    ["Grundeinstellungen", "Einfall", "Materialien", "Schichten", "Löser", "JSON"]
+tab_basis, tab_inc, tab_mat, tab_layers, tab_struct, tab_solver, tab_json = st.tabs(
+    ["Grundeinstellungen", "Einfall", "Materialien", "Schichten", "Struktur", "Löser", "JSON"]
 )
 
 with tab_basis:
@@ -348,6 +348,49 @@ with tab_layers:
         cfg["layers"] = layers
         _bump()
         st.rerun()
+
+with tab_struct:
+    st.caption(
+        "Schnittbild der Struktur mit Maßen, gezeichnet aus der Konfiguration (keine Rechnung). y ist die "
+        "Schichtnormale, y = 0 an der Substratgrenze; Schichten laufen von unten nach oben."
+    )
+    if not structure.stack(cfg):
+        st.info("Die Konfiguration hat noch keine Schichten.")
+    elif structure.period(cfg)[0] <= 0:
+        st.warning("Die Periode in x fehlt oder ist 0 – das Schnittbild braucht sie (Reiter Grundeinstellungen).")
+    else:
+        px, pz = structure.period(cfg)
+        has_2d = any(lay.type in (*structure.TWO_D_TYPES, "profile2d") for lay in structure.stack(cfg))
+        c = st.columns(3)
+        n_per = c[0].selectbox("Perioden in x", [1, 2, 3], key="fg_struct_periods")
+        equal = c[1].checkbox("Gleicher Maßstab in x und y", value=True, key="fg_struct_equal")
+        z0 = 0.0
+        if has_2d and pz > 0:
+            z0 = c[2].number_input(
+                "Schnitt bei z (µm)", value=pz / 2, min_value=0.0, max_value=pz, format="%.4f", key="fg_struct_z"
+            )
+        try:
+            fig = structure.figure_xy(cfg, z0=float(z0), periods=int(n_per), equal=equal)
+            st.pyplot(fig, clear_figure=False)
+            st.download_button(
+                "Schnittbild (.png)", nearfield.png_bytes(fig), file_name="struktur_xy.png", mime="image/png"
+            )
+        except Exception as e:  # noqa: BLE001 – eine ungültige Konfiguration darf den Editor nicht stören
+            st.error(f"Das Schnittbild lässt sich nicht zeichnen: {type(e).__name__}: {e}")
+        tops = [lay for lay in structure.stack(cfg) if lay.type in structure.TWO_D_TYPES and pz > 0]
+        if tops:
+            st.subheader("Draufsicht auf 2D-Schichten")
+            pick = st.selectbox(
+                "Schicht",
+                [lay.index for lay in tops],
+                format_func=lambda i: f"{i + 1}: {cfg['layers'][i].get('type')}",
+                key="fg_struct_layer",
+            )
+            try:
+                st.pyplot(structure.figure_xz(cfg, int(pick), periods=int(n_per)), clear_figure=False)
+            except Exception as e:  # noqa: BLE001
+                st.error(f"Die Draufsicht lässt sich nicht zeichnen: {type(e).__name__}: {e}")
+        st.dataframe(pd.DataFrame(structure.describe(cfg)), hide_index=True, width="stretch")
 
 with tab_solver:
     section_error("solver")

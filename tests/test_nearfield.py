@@ -75,3 +75,35 @@ def test_export_zip_readable_like_fgsolve(nf):
 def test_default_block():
     assert nfm.default_block("1D")["enabled"] is True and "nz" not in nfm.default_block("1D")
     assert nfm.default_block("2D")["nz"] == 120
+
+
+# ---------------------------------------------------------------- 1D-Schnitte aus Karten
+def test_line_of_map_picks_grid_row_and_column(nf):
+    cut = nf["vertical"]  # Karte (y × x): 4 × 6
+    line, actual = nfm.line_of_map(cut, 0, 0.05)  # entlang x bei festem y
+    y = cut["axis2_um"]
+    i = int(np.argmin(np.abs(y - 0.05)))
+    assert actual == pytest.approx(y[i]) and line["axis1_name"] == "x"
+    np.testing.assert_array_equal(line["axis1_um"], cut["axis1_um"])
+    np.testing.assert_array_equal(line["Ex"], cut["Ex"][i, :])  # unverändert, keine Interpolation
+    assert not nfm.is_map(line) and line["Ex"].shape == (6,)
+
+    col, actual = nfm.line_of_map(cut, 1, 0.5)  # entlang y bei festem x
+    j = int(np.argmin(np.abs(cut["axis1_um"] - 0.5)))
+    assert col["axis1_name"] == "y" and actual == pytest.approx(cut["axis1_um"][j])
+    np.testing.assert_array_equal(col["absE2"], cut["absE2"][:, j])
+
+
+def test_line_of_map_rejects_lines_and_bad_direction(nf):
+    with pytest.raises(ValueError):
+        nfm.line_of_map(nf["horizontal"], 0, 0.0)  # 1D: schon eine Linie
+    with pytest.raises(ValueError):
+        nfm.line_of_map(nf["vertical"], 2, 0.0)
+
+
+def test_line_table_columns(nf):
+    line, actual = nfm.line_of_map(nf["vertical"], 0, 0.0)
+    df = nfm.line_table(line, "y", actual)
+    assert list(df.columns)[:2] == ["x_um", "y_um (fest)"]
+    assert {"Ex_re", "Ex_im", "absE2", "Sy"} <= set(df.columns) and len(df) == 6
+    assert (df["y_um (fest)"] == actual).all()

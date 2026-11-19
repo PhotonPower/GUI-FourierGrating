@@ -13,6 +13,8 @@ Startseite zum Bearbeiten und Rechnen. **Quelle**: *Neu* (1D-Lamellengitter als 
 * **Materialien** – Art wählen (n, ε, Hauptwerte, Tensor), hinzufügen, entfernen.
 * **Schichten** – von unten nach oben; ↑ ↓ ✕ ordnen bzw. löschen. `homogeneous`, `lamellar1d` (Tabelle der Lamellen),
   `profile1d` haben Formulare; andere Typen (2D, CAD) bearbeitest du als JSON der Schicht.
+* **Struktur** – Schnittbild x–y mit Maßen (Periode, Schichtdicken, Lamellenbreiten, Profiltiefen), gezeichnet aus der
+  Konfiguration ohne Rechnung; bei 2D-Schichten Schnitt bei wählbarem z und Draufsicht x–z mit Formmaßen; PNG-Download.
 * **Löser** – RK/RCWA-Optionen, Rechenkern, Genauigkeit, Threads.
 * **JSON** – ganze Konfiguration; „Übernehmen“ ersetzt die Formularwerte; „Herunterladen“ speichert die Datei.
 
@@ -43,6 +45,11 @@ Feldschnitte für den **ersten Scanpunkt** der Konfiguration aus dem *Editor*.
    wählen. Karten zeigen die Materialgrenzen als weiße Linien; 1D-Linienschnitte erscheinen als Kurve.
 4. **Alle Schnitte (.zip)** enthält `nearfield_horizontal/` und `nearfield_vertical/` wie `fgsolve`
    (`<Größe>.npy`, `material.npy`, `meta.json`); `scripts/plot_nearfield.py` aus FourierGrating liest sie.
+   **Rechnung (.h5)** enthält alles in einer HDF5-Datei.
+5. **1D-Schnitt (Linie) aus dieser Karte** (Expander bei Karten): Linie entlang der einen Achse bei festem Wert der
+   anderen, z. B. entlang x bei festem y (in der x–y-Karte des vertikalen Schnitts, also bei einem z) oder entlang y
+   (Tiefenprofil). Es wird die Zeile bzw. Spalte am nächstgelegenen Gitterpunkt gewählt – ohne Interpolation und ohne
+   neue Rechnung; der tatsächliche Wert steht darunter. Ausgabe als Kurve und als CSV mit allen Größen.
 
 ## CAD
 
@@ -124,7 +131,8 @@ hinweg, sonst nur für diese Browsersitzung). Der Betreiber kann alte Rechnungen
 * **Abbrechen** – nur für wartende Rechnungen (eine laufende lässt sich nicht unterbrechen).
 * **Löschen** – entfernt eine beendete Rechnung samt Dateien.
 * **Rechnung herunterladen (.zip)** – Konfiguration, Ergebnistabellen (CSV/JSON, beim Nahfeld `.npy`) und die
-  gespeicherten Rohdateien; **Modell herunterladen (.json)** – nur die Konfiguration.
+  gespeicherten Rohdateien; **Rechnung herunterladen (.h5)** – dieselben Daten als HDF5-Datei (Aufbau unten);
+  **Modell herunterladen (.json)** – nur die Konfiguration.
 * **Im Editor öffnen** übernimmt die gespeicherte Konfiguration; **Im Scan / Nahfeld öffnen** zeigt das Ergebnis dort.
 * Was beim Neustart noch wartete oder lief, steht als Fehler „Server wurde neu gestartet“ da; bitte neu einreichen.
 
@@ -147,3 +155,18 @@ Backend-Voreinstellung, GPU-Zustand (Speicher, Auslastung, Temperatur) und die E
 *Neu prüfen* liest die Angaben zum Löser erneut. Der Abschnitt „Betrieb“ zeigt die Gesundheitsprüfung, den
 Speicherbedarf der gespeicherten Rechnungen und den Knopf *Jetzt aufräumen* (nur wenn der Betreiber eine Aufbewahrung
 eingestellt hat).
+
+## HDF5-Export
+
+*Rechnungen* (Einzelne Rechnung), *Scan* und *Nahfeld* bieten **Rechnung (.h5)** an. Aufbau (Python: `h5py`; Zeichen-
+ketten sind UTF-8, JSON als Text; Datei lesen z. B. mit `h5py.File(...)`, MATLAB `h5read`, `h5dump`):
+
+| Pfad | Inhalt |
+|---|---|
+| Attribute von `/` | `format` (`fg-gui-h5/1`), `kind` (`solve`, `scan`, `nearfield`, `optimize`), `label`, `job_id`, `owner`, `gui_version`, `fouriergrating` |
+| `/config`, `/meta` | Konfiguration und Metadaten der Rechnung als JSON-Text |
+| `/result/reflected`, `/result/transmitted` | Einzelrechnung: Ordnungen (`n`, `m`, `eff`, `eff_s`, `eff_p`, `amp_s`, `amp_p`); Attribute `ΣR`, `ΣT`, `Absorption`; `/result/diagnostics` als JSON |
+| `/result/columns/<Spalte>` | Scan: Spalten wie `ScanResult.columns`; `/result/table/…` die Tabelle der GUI |
+| `/result/<schnitt>/<Größe>` | Nahfeld: Felder (komplex), `axis1_um`, `axis2_um`, `material`, Attribute `axis1_name` …, `meta` als JSON |
+| `/result/history/…`, `x` | Optimierung: Verlauf und Optimum |
+| `/materials/…` | dispersive Materialien: n, ε über λ (nur wenn die Konfiguration solche enthält) |

@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from fg_gui import config_io, estimate, export, results
+from fg_gui import config_io, estimate, export, h5export, results
 from fg_gui.jobs import CANCELLED, DONE, FAILED, RUNNING, WAITING
 from fg_gui.state import delete_own_session, job_manager, open_in_editor, owner_id
 from fg_gui.store import KIND_LABELS
@@ -135,6 +135,13 @@ if job.status == DONE:
         file_name=f"{export.safe_name(job.label)}_{job.id}.zip",
         mime="application/zip",
         help="Konfiguration, Ergebnis als Tabellen/Arrays und die gespeicherten Rohdateien",
+    )
+    d[2].download_button(
+        "Rechnung herunterladen (.h5)",
+        h5export.run_h5(job, jm.store),
+        file_name=f"{export.safe_name(job.label)}_{job.id}.h5",
+        mime="application/x-hdf5",
+        help="HDF5: Konfiguration, Ergebnis (Ordnungen, Spalten, Nahfeld-Arrays), Diagnose und dispersive Materialien",
     )
 if cfg is not None:
     d[1].download_button(

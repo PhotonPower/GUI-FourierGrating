@@ -139,6 +139,17 @@ def test_nearfield_page(fake_fg):
     # Linienschnitt (horizontal, 1D) wählen
     next(s for s in at.selectbox if s.label == "Schnitt").select("horizontal").run()
     assert not at.exception, at.exception
+    assert not [r for r in at.radio if r.label == "Richtung"]  # Linie: kein 1D-Schnitt aus der Karte
+    # Karte (vertikal): 1D-Schnitt wählen
+    next(s for s in at.selectbox if s.label == "Schnitt").select("vertical").run()
+    assert not at.exception, at.exception
+    radio = next(r for r in at.radio if r.label == "Richtung")
+    assert "Linie entlang x bei festem y" in radio.format_func(0)
+    next(n for n in at.number_input if n.label.startswith("Fester Wert y")).set_value(0.2).run()
+    assert not at.exception, at.exception
+    radio.set_value(1).run()
+    assert not at.exception, at.exception
+    assert any(n.label.startswith("Fester Wert x") for n in at.number_input)
 
 
 def test_nearfield_page_without_config(fake_fg):
@@ -316,6 +327,30 @@ def test_editor_2d_layers_have_forms(fake_fg, tmp_path, monkeypatch):
     at = _editor(monkeypatch, tmp_path, "p2d.json")
     assert at.session_state["fg_cfg"] == cfg
     assert not any("kein Formular" in i.value for i in at.info)
+
+
+def test_editor_structure_tab_draws_2d_and_1d(fake_fg, tmp_path, monkeypatch):
+    cfg = {
+        "dimension": "2D", "solver": "rcwa", "truncation": {"Nx": 3, "Nz": 3}, "period_um": {"x": 0.6, "z": 0.6},
+        "incidence": {"lambda_um": 0.63, "phi_deg": 0, "psi_deg": 0, "delta_deg": 0},
+        "materials": {"air": {"n": 1.0}, "si": {"n": 3.9}}, "superstrate": "air", "substrate": "si",
+        "layers": [
+            {"type": "contour2d", "thickness_um": 0.1, "background": "air",
+             "regions": [{"material": "si", "circle": {"center_um": [0.3, 0.3], "radius_um": 0.1}}]},
+        ],
+    }  # fmt: skip
+    (tmp_path / "s2d.json").write_text(json.dumps(cfg))
+    at = _editor(monkeypatch, tmp_path, "s2d.json")
+    assert not at.exception, at.exception
+    labels = {n.label for n in at.number_input}
+    assert "Schnitt bei z (µm)" in labels  # 2D-Schicht: Schnitthöhe wählbar
+    assert any(s.label == "Schicht" for s in at.selectbox)  # Draufsicht auf die contour2d-Schicht
+    assert not [e for e in at.error if "Schnittbild" in e.value or "Draufsicht" in e.value]
+    assert at.session_state["fg_cfg"] == cfg  # Anzeige ändert die Konfiguration nicht
+    # 1D-Standardkonfiguration: Schnittbild ohne z-Eingabe
+    at1 = _run("editor.py")
+    assert not at1.exception, at1.exception
+    assert "Schnitt bei z (µm)" not in {n.label for n in at1.number_input}
 
 
 # ---------------------------------------------------------------- Sitzungskennung in der Adresszeile

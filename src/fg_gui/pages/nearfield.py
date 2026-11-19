@@ -3,7 +3,7 @@
 import streamlit as st
 
 from fg_gui import config_form as cf
-from fg_gui import config_io, nearfield, solver
+from fg_gui import config_io, h5export, nearfield, solver
 from fg_gui.cad import CadFileError
 from fg_gui.jobs import DONE, FAILED
 from fg_gui.state import job_manager, solver_info, submit_job
@@ -119,6 +119,48 @@ c[0].download_button(
 )
 if png is not None:
     c[1].download_button("Bild (.png)", png, file_name=f"{cut_name}_{quantity}_{part}.png", mime="image/png")
+c[2].download_button(
+    "Rechnung (.h5)",
+    h5export.run_h5(job, job_manager().store),
+    file_name=f"nahfeld_{job.id}.h5",
+    mime="application/x-hdf5",
+)
+if nearfield.is_map(cut):
+    with st.expander("1D-Schnitt (Linie) aus dieser Karte"):
+        (n1, x1), (n2, x2) = nearfield.axes(cut)
+        st.caption(
+            "Zeile bzw. Spalte der berechneten Karte am nächstgelegenen Gitterpunkt – keine Interpolation, keine neue "
+            "Rechnung. Für eine feinere Linie nx/ny bzw. nz in den Einstellungen erhöhen."
+        )
+        c = st.columns(2)
+        along = c[0].radio(
+            "Richtung",
+            [0, 1],
+            format_func=lambda i: (
+                f"Linie entlang {n1} bei festem {n2}" if i == 0 else f"Linie entlang {n2} bei festem {n1}"
+            ),
+            key="fg_nf_line_dir",
+        )
+        fix_name, fix_axis = (n2, x2) if along == 0 else (n1, x1)
+        lo, hi = float(fix_axis.min()), float(fix_axis.max())
+        at = c[1].number_input(
+            f"Fester Wert {fix_name} (µm)", value=min(max(0.0, lo), hi), min_value=lo, max_value=hi, format="%.4f",
+            key=f"fg_nf_line_at_{along}",
+        )  # fmt: skip
+        line, actual = nearfield.line_of_map(cut, along, float(at))
+        st.caption(
+            f"Gewählt: {fix_name} = {actual:.6g} µm "
+            f"(Gitterpunkt {nearfield.nearest(fix_axis, float(at)) + 1} von {len(fix_axis)})"
+        )
+        df = nearfield.line_frame(line, quantity, part)
+        st.line_chart(df, x=df.columns[0], y=df.columns[1])
+        st.download_button(
+            "Linie als Tabelle (.csv, alle Größen)",
+            nearfield.line_table(line, fix_name, actual).to_csv(index=False).encode(),
+            file_name=f"{cut_name}_linie_{fix_name}_{actual:.4g}.csv".replace("-", "m"),
+            mime="text/csv",
+        )
+
 with st.expander("Angaben zum Schnitt"):
     st.json(nearfield.describe(cut))
     st.json(cut.get("meta", {}), expanded=False)

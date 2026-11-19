@@ -85,6 +85,49 @@ def line_frame(cut: dict, quantity: str, part: str = "abs") -> pd.DataFrame:
     return pd.DataFrame({f"{name} (µm)": x, quantity_label(quantity): select(cut, quantity, part)})
 
 
+def nearest(values: np.ndarray, at: float) -> int:
+    """Index des Gitterpunkts, der ``at`` am nächsten liegt (keine Interpolation)."""
+    return int(np.argmin(np.abs(np.asarray(values, dtype=float) - at)))
+
+
+def line_of_map(cut: dict, along: int, at: float) -> tuple[dict, float]:
+    """1D-Schnitt aus einer Karte: Zeile bzw. Spalte am Gitterpunkt, der ``at`` am nächsten liegt.
+
+    ``along`` = 0: Linie entlang der Achse 1 bei festem Wert der Achse 2; 1: entlang der Achse 2 bei festem Wert
+    der Achse 1. Es werden nur Gitterwerte ausgewählt (keine Interpolation, keine neue Rechnung). Rückgabe: ein
+    Schnitt im Format eines Linienschnitts (``axis1_*`` = Laufachse) und der tatsächliche Wert der festen Achse.
+    """
+    (n1, x), a2 = axes(cut)
+    if a2 is None:
+        raise ValueError("Der Schnitt ist bereits eine Linie")
+    n2, y = a2
+    if along not in (0, 1):
+        raise ValueError("along muss 0 oder 1 sein")
+    run_name, run_axis, fix_name, fix_axis = (n1, x, n2, y) if along == 0 else (n2, y, n1, x)
+    i = nearest(fix_axis, at)
+    out: dict = {"cut": cut.get("cut", ""), "lambda_um": cut.get("lambda_um"), "axis1_name": run_name,
+                 "axis1_um": run_axis, "axis2_name": "", "axis2_um": np.empty(0)}  # fmt: skip
+    for key, value in cut.items():
+        if isinstance(value, np.ndarray) and key not in _NOT_FIELDS and value.ndim == 2:
+            out[key] = value[i, :] if along == 0 else value[:, i]
+    return out, float(fix_axis[i])
+
+
+def line_table(line: dict, fixed_name: str, fixed_value: float) -> pd.DataFrame:
+    """Alle Größen einer Linie als Tabelle; komplexe Felder als ``_re``/``_im``; Kopf: feste Achse in den Namen."""
+    (name, run), _ = axes(line)
+    data: dict[str, np.ndarray] = {f"{name}_um": run}
+    for q in quantities(line):
+        arr = line[q]
+        if np.iscomplexobj(arr):
+            data[f"{q}_re"], data[f"{q}_im"] = np.real(arr), np.imag(arr)
+        else:
+            data[q] = arr
+    df = pd.DataFrame(data)
+    df.insert(1, f"{fixed_name}_um (fest)", fixed_value)
+    return df
+
+
 def figure(cut: dict, quantity: str, part: str = "abs", contours: bool = True):
     """Karte oder Linie wie ``plot_nearfield.py``; Materialgrenzen als weiße Kontur."""
     from matplotlib.figure import Figure  # ohne pyplot: kein globaler Zustand, threadsicher

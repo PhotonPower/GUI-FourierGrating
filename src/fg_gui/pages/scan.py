@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from fg_gui import config_io, dispersion, scans, solver
+from fg_gui import config_io, dispersion, h5export, scans, solver
 from fg_gui.cad import CadFileError
 from fg_gui.jobs import DONE, FAILED
 from fg_gui.state import job_manager, solver_info, submit_job
@@ -132,4 +132,11 @@ st.download_button(
     scans.to_csv(frame, getattr(scan, "sweep_parameter", "") or ""),
     file_name=f"{base}_efficiencies.csv",
     mime="text/csv",
+)
+st.download_button(
+    "Rechnung (.h5)",
+    h5export.run_h5(jobs[main_id], job_manager().store),
+    file_name=f"{base}_{main_id}.h5",
+    mime="application/x-hdf5",
+    help="HDF5: Konfiguration, Spalten wie ScanResult.columns, Diagnose und dispersive Materialien",
 )

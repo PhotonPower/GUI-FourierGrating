@@ -2,6 +2,18 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.12.0] – 2026-11-19
+
+### Hinzugefügt (Rückmeldung der Nutzer)
+- **HDF5-Download** einer fertigen Rechnung (*Rechnungen*, *Scan*, *Nahfeld*): Konfiguration, Metadaten, Ergebnis
+  (Ordnungen, Scan-Spalten, Nahfeldfelder und Achsen, Optimierungsverlauf), Diagnose und dispersive Materialien.
+  Neue Abhängigkeit `h5py`; Aufbau in `docs/user_guide.md` („HDF5-Export“).
+- **Nahfeld, 1D-Schnitte:** Linien aus den Karten (entlang x bei festem y bzw. y bei festem x; bei 2D-Strukturen
+  innerhalb des z-Schnitts) am nächsten Gitterpunkt, ohne Interpolation und ohne neue Rechnung; Kurve und CSV.
+- **Editor, Reiter *Struktur*:** Schnittbild x–y mit Maßen (Perioden, Dicken, Lamellenbreiten, Profiltiefen, Schnitt
+  bei z für 2D-Schichten) und Draufsicht x–z auf `polygon2d`/`contour2d` mit Formmaßen, aus der Konfiguration
+  gezeichnet; PNG-Download. Neues Modul `structure.py` (nur Darstellung).
+
 ## [0.11.1] – 2026-11-17
 
 ### Geändert
