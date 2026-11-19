@@ -377,3 +377,62 @@ def test_computed_nearfield_line_in_2d_matches_map_row_and_is_a_line_run():
     assert nearfield.is_line_run(run) and nearfield.visible_cuts(run) == ["vertical"]
     assert run["vertical"]["Ex"].shape == (1, cfg["nearfield"]["nx"])
     np.testing.assert_allclose(run["vertical"]["Ex"][0], full["vertical"]["Ex"][i], rtol=1e-9, atol=1e-12)
+
+
+# ---------------------------------------------------------------- CAD in 1D (FourierGrating M23, ab 0.20.0)
+EXAMPLES_DIR = Path(__file__).resolve().parents[2] / "FourierGrating" / "examples"
+
+
+def _line_grating_cfg() -> dict:
+    data = Path(__file__).parent / "data"
+    cfg = json.loads((data / "cad_line_grating_1d.json").read_text())  # Kopie aus FourierGrating
+    cfg["layers"][0]["file"] = str(data / "cad" / "line_grating.step")
+    return cfg
+
+
+@pytest.mark.solver
+def test_cad_check_1d_reports_profile_and_length_fractions():
+    from fg_gui import cad, structure
+
+    cfg = _line_grating_cfg()
+    out = solver.cad_check(cfg, extra_heights=(0.05,))
+    report = out["report"]
+    assert report["ok"] and report["dimension"] == "1D" and report["cell_origin_um"] == [0.0]
+    assert report["z_cut_um"] == pytest.approx(-0.15)
+    assert {b["kind"] for b in report["bands"]} == {"sectioned1d"} and cad.is_1d(report)
+    assert len(out["previews"]) == 1 and out["previews"][0]["y_um"] is None and out["previews"][0]["svg"]
+    assert "Längenanteile" in cad.bands_rows(report)[0]
+    lay = structure.stack(cfg, report)[0]  # Bänder und Höhe 0,1 µm aus dem Bericht
+    assert not lay.nominal and lay.height == pytest.approx(0.1, abs=1e-6) and len(lay.bands) == 3
+    assert structure.figure_xy(cfg, cad_report=report).axes
+
+
+@pytest.mark.solver
+def test_cad_1d_solves_with_energy_balance():
+    cfg = _line_grating_cfg()
+    cfg["incidence"]["lambda_um"] = 0.5
+    cfg["truncation"]["Nx"] = 6
+    res = solver.solve(cfg)
+    tot = results.totals(res)
+    assert tot["ΣR"] + tot["ΣT"] + tot["Absorption"] == pytest.approx(1.0, abs=1e-6)
+    assert not results.orders_frame(res).empty
+
+
+@pytest.mark.solver
+def test_cad_1d_with_explicit_z_cut():
+    cfg = _line_grating_cfg()
+    cfg["layers"][0]["z_cut_um"] = -0.15
+    assert solver.cad_check(cfg)["report"]["z_cut_um"] == pytest.approx(-0.15)
+    cfg["layers"][0]["z_cut_um"] = 10.0  # außerhalb des z-Bereichs der Linie
+    report = solver.cad_check(cfg)["report"]
+    assert not report["ok"] and any(e["code"] == "OUT_OF_RANGE" for e in report["errors"])
+
+
+@pytest.mark.solver
+@pytest.mark.skipif(not (EXAMPLES_DIR / "cad" / "pillar_array.step").is_file(), reason="Beispiele nicht gefunden")
+def test_cad_1d_rejects_non_z_invariant_body_quickly():
+    cfg = _line_grating_cfg()
+    cfg["layers"][0]["file"] = str(EXAMPLES_DIR / "cad" / "pillar_array.step")  # Säulen: nicht z-invariant
+    cfg["layers"][0]["bodies"] = [{"name": "Pillar", "material": "si"}, {"name": "Lid", "material": "resist"}]
+    report = solver.cad_check(cfg)["report"]
+    assert not report["ok"] and any(e["code"] == "NOT_Z_INVARIANT" for e in report["errors"])

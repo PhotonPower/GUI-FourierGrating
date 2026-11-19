@@ -90,10 +90,16 @@ def cad_check(cfg: dict, extra_heights: tuple[float, ...] = ()) -> dict:
     """Geometrieprüfung der CAD-Schichten (``fouriergrating.cad.check``) und Schnittvorschau.
 
     Vorschau (SVG) je Band in der Bandmitte sowie bei ``extra_heights``; scheitert ein Schnitt, steht die
-    Meldung statt des SVG im Eintrag. Läuft als Job (AGENTS.md, Abschnitt 3).
+    Meldung statt des SVG im Eintrag. In 1D (M23) gibt es nur eine Vorschau (Profil in (x, y), ``y_um`` = ``None``).
+    Läuft als Job (AGENTS.md, Abschnitt 3).
     """
     cad = module().cad
     report = cad.check(None, cfg)
+    if report.get("dimension") == "1D":  # M23: ein Profil in der Ebene (x, y); eine Höhe gibt es nicht
+        try:
+            return {"report": report, "previews": [{"y_um": None, "svg": str(cad.preview(None, cfg))}]}
+        except Exception as e:
+            return {"report": report, "previews": [{"y_um": None, "svg": "", "error": f"{type(e).__name__}: {e}"}]}
     heights = [(b["y0_um"] + b["y1_um"]) / 2 for b in report.get("bands") or []] + [float(y) for y in extra_heights]
     previews = []
     for y in heights:

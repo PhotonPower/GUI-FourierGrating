@@ -130,3 +130,26 @@ def test_findings_bands_heights():
     assert cad.bands_rows(report)[0]["Flächenanteile"] == "air 75.0%, si 25.0%"
     assert cad.band_heights(report) == [0.1]
     assert set(cad.CODES) >= {"SHELL_OPEN", "BODY_UNASSIGNED", "STEP_UNSUPPORTED"}
+
+
+# ---------------------------------------------------------------- 1D-Gitter (M23)
+def test_bands_rows_use_length_fractions_in_1d():
+    report = {
+        "dimension": "1D",
+        "bands": [{"y0_um": 0.0, "y1_um": 0.1, "kind": "sectioned1d", "area_fractions": {"air": 0.7, "resist": 0.3}}],
+    }
+    row = cad.bands_rows(report)[0]
+    assert row["Längenanteile"] == "air 70.0%, resist 30.0%" and "Flächenanteile" not in row
+    assert cad.is_1d(report) and not cad.is_1d({"bands": []})
+    assert "NOT_Z_INVARIANT" in cad.CODES
+
+
+def test_cad_check_in_1d_has_one_profile_preview(fake_fg):
+    from fg_gui import solver
+
+    cfg = {"dimension": "1D", "layers": [{"type": "cad", "bodies": [{"name": "Line", "material": "resist"}]}]}
+    out = solver.cad_check(cfg, extra_heights=(0.05,))  # extra_heights sind in 1D ohne Bedeutung
+    assert out["report"]["dimension"] == "1D" and len(out["previews"]) == 1
+    assert out["previews"][0]["y_um"] is None and out["previews"][0]["svg"].startswith("<svg")
+    out2 = solver.cad_check({"dimension": "2D", **{k: v for k, v in cfg.items() if k != "dimension"}})
+    assert len(out2["previews"]) == len(out2["report"]["bands"]) and out2["previews"][0]["y_um"] == 0.1

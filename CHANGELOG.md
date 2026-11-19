@@ -2,7 +2,16 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
-## [Unreleased]
+## [0.13.0] – 2026-11-19
+
+### Hinzugefügt
+- **CAD in 1D-Gittern (G10, FourierGrating M23):** Seite *CAD* für `dimension: 1D` – Hinweis auf z-invariante Körper,
+  Zellursprung nur x₀, Schnittebene `z_cut_um` (optional), kein sigma beim Normalenfeld, keine Schnitthöhen. *Prüfen*
+  zeigt Bänder (`homogeneous`/`lamellar1d`/`sectioned1d`) mit Längenanteilen und das Profil in (x, y) als einzige
+  Vorschau (`solver.cad_check`: `y_um` ist dort `None`); Befundcode `NOT_Z_INVARIANT` erklärt. Warnung bei `z_cut_um`
+  in 2D. Reiter *Struktur* des Editors nutzt Bänder und Profil in 1D wie in 2D.
+- Tests mit dem echten Löser (`-m solver`): Prüfbericht, Energiebilanz, `z_cut_um`, `NOT_Z_INVARIANT` (Säulen als 1D);
+  Kopie von `cad_line_grating_1d.json` und `line_grating.step` in `tests/data/`.
 
 ### Geändert
 - Mindestversion FourierGrating 0.20.0 (`solver.MIN_VERSION`, Extra `solver`): CAD-Schichten in 1D-Gittern (M23).

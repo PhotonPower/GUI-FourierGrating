@@ -131,6 +131,13 @@ def make_fake_fg(version: str = "0.20.0") -> types.ModuleType:
                 "where_um": [0.25, 0.1, 0],
             }
             return {"ok": False, "errors": [err], "warnings": [], "bands": []}
+        if cfg.get("dimension") == "1D":  # M23: Profil bei z_cut, Längenanteile, ein Zellursprung
+            bands_1d = [
+                {"y0_um": 0.0, "y1_um": 0.1, "kind": "sectioned1d", "area_fractions": {"air": 0.7, "resist": 0.3}},
+                {"y0_um": 0.1, "y1_um": 0.15, "kind": "lamellar1d", "area_fractions": {"air": 0.5, "resist": 0.5}},
+            ]
+            return {"ok": True, "errors": [], "warnings": [], "bands": bands_1d, "dimension": "1D",
+                    "cell_origin_um": [0.0], "z_cut_um": layers[0].get("z_cut_um", -0.15)}  # fmt: skip
         warn = {"code": "FEATURE_SMALL", "message": "band thin", "where_um": [0.1, 0.2, 0.3]}
         bands = [
             {"y0_um": 0.0, "y1_um": 0.2, "kind": "sectioned", "area_fractions": {"air": 0.8, "si": 0.2}},
@@ -139,7 +146,7 @@ def make_fake_fg(version: str = "0.20.0") -> types.ModuleType:
         return {"ok": True, "errors": [], "warnings": [warn], "bands": bands}
 
     cad.check = check
-    cad.preview = lambda step, cfg, y: (
+    cad.preview = lambda step, cfg, y=None: (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><title>{y}</title></svg>'
     )
     fg.cad = cad

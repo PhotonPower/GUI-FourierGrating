@@ -29,6 +29,7 @@ CODES = {
     "UNIT_SUSPECT": "Abmessungen passen nicht zu Periode/Wellenlänge (Einheit?)",
     "FEATURE_SMALL": "Merkmal oder Band sehr klein",
     "BODY_UNASSIGNED": "Körper ohne Material oder Zuordnung ohne Körper",
+    "NOT_Z_INVARIANT": "1D-Gitter: Körper ist nicht entlang z extrudiert (Linie), z. B. eine Säule",
     "STEP_UNSUPPORTED": "Datei nicht lesbar oder Entität nicht unterstützt",
 }
 
@@ -172,7 +173,13 @@ def findings_rows(report: dict) -> list[dict]:
     return rows
 
 
+def is_1d(report: dict) -> bool:
+    """Bericht eines 1D-Gitters (M23): ein Profil bei ``z_cut_um``; die Anteile sind Längenanteile."""
+    return report.get("dimension") == "1D"
+
+
 def bands_rows(report: dict) -> list[dict]:
+    column = "Längenanteile" if is_1d(report) else "Flächenanteile"
     rows = []
     for b in report.get("bands") or []:
         fr = b.get("area_fractions") or {}
@@ -181,7 +188,7 @@ def bands_rows(report: dict) -> list[dict]:
                 "y von (µm)": b.get("y0_um"),
                 "y bis (µm)": b.get("y1_um"),
                 "Art": b.get("kind", ""),
-                "Flächenanteile": ", ".join(f"{k} {v:.1%}" for k, v in fr.items()),
+                column: ", ".join(f"{k} {v:.1%}" for k, v in fr.items()),
             }
         )
     return rows

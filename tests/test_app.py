@@ -225,8 +225,10 @@ def test_jobs_page_survives_restart_and_other_session(fake_fg):
 
 
 # ---------------------------------------------------------------- G5: CAD
-def _cad_cfg(file: str, bodies=None) -> dict:
+def _cad_cfg(file: str, bodies=None, dimension: str = "2D") -> dict:
     cfg = json.loads(json.dumps(EXAMPLE))
+    if dimension == "2D":  # CAD-Körper sind in der Regel 3D-Körper: 2D-Gitter mit Periode in z
+        cfg.update({"dimension": "2D", "period_um": {"x": 1.0, "z": 1.0}, "truncation": {"Nx": 3, "Nz": 3}})
     cfg["layers"] = [
         {"type": "cad", "file": file, "unit": "auto", "axes": {"y": "+Z", "x": "+X"}, "bodies": bodies or []}
     ]
@@ -292,6 +294,64 @@ def test_editor_structure_tab_uses_cad_check_bands(fake_fg, tmp_path, monkeypatc
     assert not any("nach „Prüfen“" in i.value for i in at.info)
     assert any("CAD-Bänder aus der Prüfung" in c.value for c in at.caption)
     assert any(s.label.startswith("Höhe y") for s in at.selectbox)  # Draufsicht aus der Prüfung
+
+
+def test_cad_page_in_1d_has_z_cut_and_profile_preview(fake_fg, tmp_path, monkeypatch):
+    from conftest import FAKE_STEP
+    from fg_gui import cad
+
+    monkeypatch.setenv("FG_GUI_DATA_DIR", str(tmp_path / "data"))
+    step = cad.save_upload(FAKE_STEP.encode(), tmp_path / "data" / "uploads")
+    at = _cad_page(_cad_cfg(str(step), [{"name": "Line", "material": "bar"}], dimension="1D"))
+    assert any("1D-Gitter (M23)" in i.value for i in at.info)
+    labels = {n.label for n in at.number_input} | {t.label for t in at.text_input}
+    assert not any(label.startswith("Weitere Schnitthöhen") for label in labels)  # 1D: keine Höhen
+    assert not any(label.startswith("Normalenfeld: sigma") for label in labels)  # 1D: analytisches Normalenfeld
+    assert any(label.startswith("Zellursprung x₀ (µm") for label in labels)  # nur x₀, kein z₀
+    layer = at.session_state["fg_cfg"]["layers"][0]
+    next(c for c in at.checkbox if c.label.startswith("Schnittebene z festlegen")).check().run()
+    z_cut = next(n for n in at.number_input if n.label.startswith("z_cut"))
+    z_cut.set_value(-0.2).run()
+    assert at.session_state["fg_cfg"]["layers"][0]["z_cut_um"] == -0.2
+    next(b for b in at.button if b.label == "Prüfen").click().run()
+    _wait(at, lambda: at.success)
+    assert not at.exception, at.exception
+    assert any("Profil in (x, y)" in m.value for m in at.markdown)
+    assert any("z = -0.2" in c.value for c in at.caption)
+    assert not any(s.label.startswith("Höhe y") for s in at.selectbox)  # eine Vorschau, keine Höhenwahl
+    bands = [df for df in at.dataframe if "Längenanteile" in df.value.columns]
+    assert bands and list(bands[0].value["Art"]) == ["sectioned1d", "lamellar1d"]
+    next(c for c in at.checkbox if c.label.startswith("Schnittebene z festlegen")).uncheck().run()
+    assert "z_cut_um" not in at.session_state["fg_cfg"]["layers"][0] and layer is not None
+
+
+def test_cad_page_in_2d_warns_about_z_cut(fake_fg, tmp_path, monkeypatch):
+    from conftest import FAKE_STEP
+    from fg_gui import cad
+
+    monkeypatch.setenv("FG_GUI_DATA_DIR", str(tmp_path / "data"))
+    step = cad.save_upload(FAKE_STEP.encode(), tmp_path / "data" / "uploads")
+    cfg = _cad_cfg(str(step), [{"name": "Pillar", "material": "bar"}])
+    cfg["layers"][0]["z_cut_um"] = 0.1
+    at = _cad_page(cfg)
+    assert any("nur in 1D erlaubt" in w.value for w in at.warning)
+    assert not any(c.label.startswith("Schnittebene z festlegen") for c in at.checkbox)
+
+
+def test_editor_structure_tab_uses_1d_cad_bands(fake_fg, tmp_path, monkeypatch):
+    from conftest import FAKE_STEP
+    from fg_gui import cad
+
+    monkeypatch.setenv("FG_GUI_DATA_DIR", str(tmp_path / "data"))
+    step = cad.save_upload(FAKE_STEP.encode(), tmp_path / "data" / "uploads")
+    at = _cad_page(_cad_cfg(str(step), [{"name": "Line", "material": "bar"}], dimension="1D"))
+    next(b for b in at.button if b.label == "Prüfen").click().run()
+    _wait(at, lambda: at.success)
+    at.switch_page(str(Path(APP).parent / "pages" / "editor.py"))
+    at.run()
+    assert not at.exception, at.exception
+    assert any("Längenanteile" in c.value for c in at.caption)
+    assert not any(s.label.startswith("Höhe y") for s in at.selectbox)  # 1D: Profil statt Höhenwahl
 
 
 def test_cad_page_reports_errors(fake_fg, tmp_path, monkeypatch):

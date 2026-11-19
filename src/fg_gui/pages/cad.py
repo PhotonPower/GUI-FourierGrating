@@ -35,6 +35,14 @@ name = st.session_state.get("fg_cfg_label") or st.session_state["fg_cfg_name"].s
 layers = cfg.setdefault("layers", []) if isinstance(cfg.get("layers"), list) else []
 mat_names = list(cfg.get("materials") or {})
 s = settings()
+one_d = cfg.get("dimension") == "1D"
+if one_d:
+    st.info(
+        "**1D-Gitter (M23):** Erlaubt sind z-invariante Körper, also Linien, die entlang z extrudiert sind (Standard: "
+        "−CAD Y); die Extrusionslänge ist beliebig. FourierGrating schneidet jeden Körper einmal bei z = z_cut und "
+        "rechnet mit dem Profil in (x, y). Säulen und andere nicht z-invariante Körper meldet die Prüfung als "
+        "`NOT_Z_INVARIANT` – dafür die Dimension auf 2D stellen."
+    )
 
 
 def bump() -> None:
@@ -121,9 +129,32 @@ choice(c[2], "CAD-Achse für x", axes, "x", cad.AXES, "+X")
 c = st.columns(2)
 if "y_range_um" in layer or c[0].checkbox("y-Bereich festlegen", key=wkey("cad_yr", index)):
     text_list(c[0], "y-Bereich (µm, von, bis)", layer, "y_range_um")
-text_list(c[1], "Zellursprung x₀, z₀ (µm; leer = Minimum der Körper)", layer, "cell_origin_um")
+text_list(
+    c[1],
+    "Zellursprung x₀ (µm; leer = Minimum der Körper)"
+    if one_d
+    else "Zellursprung x₀, z₀ (µm; leer = Minimum der Körper)",
+    layer,
+    "cell_origin_um",
+)
 if layer.get("cell_origin_um") == []:
     layer.pop("cell_origin_um")
+if one_d:
+    cz = st.columns(2)
+    fixed_cut = cz[0].checkbox(
+        "Schnittebene z festlegen (sonst Mitte des gemeinsamen z-Bereichs aller Körper)",
+        value="z_cut_um" in layer,
+        key=wkey("cad_zcut_on", index),
+    )
+    if fixed_cut:
+        number(cz[1], "z_cut (µm, FG z der Schnittebene)", layer, "z_cut_um", 0.0)
+    else:
+        layer.pop("z_cut_um", None)
+elif "z_cut_um" in layer:
+    st.warning(
+        "`z_cut_um` ist nur in 1D erlaubt – in 2D lehnt FourierGrating die Schicht ab "
+        "(im Reiter JSON des Editors den Schlüssel entfernen)."
+    )
 c = st.columns(3)
 bg_options = ["superstrate", "substrate", *mat_names]
 choice(c[0], "Material außerhalb der Körper", layer, "background", bg_options, "superstrate")
@@ -162,7 +193,8 @@ with st.expander("Zerlegung in Bänder (slicing) und Normalenfeld"):
     nfield = nested("normal_field")
     c = st.columns(2)
     integer(c[0], "Normalenfeld: Raster", nfield, "grid", 512, minimum=8)
-    number(c[1], "Normalenfeld: sigma", nfield, "sigma", 3.0, min_value=0.0)
+    if not one_d:  # 1D: das Normalenfeld ist analytisch, nur das Raster für FEATURE_SMALL zählt
+        number(c[1], "Normalenfeld: sigma", nfield, "sigma", 3.0, min_value=0.0)
     choice(st, "Faktorisierung", layer, "factorization", ["auto", "FFF_sym", "FFF_iso", "FFF_B", "laurent"], "auto")
 
 for key, d in _detached.items():
@@ -171,7 +203,11 @@ for key, d in _detached.items():
 
 # ---------------------------------------------------------------- Prüfen
 st.subheader("Geometrie prüfen")
-extra = st.text_input("Weitere Schnitthöhen y (µm, optional; je Band wird die Mitte immer gezeigt)", key=wkey("cad_y"))
+extra = (
+    ""
+    if one_d  # 1D: eine Vorschau, das Profil in (x, y)
+    else st.text_input("Weitere Schnitthöhen y (µm, optional; je Band wird die Mitte immer gezeigt)", key=wkey("cad_y"))
+)
 if st.button("Prüfen", type="primary"):
     try:
         heights = tuple(float(v) for v in cf.parse_list(extra))
@@ -220,18 +256,25 @@ if bands:
     st.markdown("**Bänder** (von unten nach oben)")
     st.dataframe(bands, hide_index=True, width="stretch")
 if previews:
-    st.markdown("**Schnittvorschau**")
-    pick = st.selectbox(
-        "Höhe y (µm)",
-        range(len(previews)),
-        format_func=lambda i: f"y = {previews[i]['y_um']:.6g}",
-        key=wkey("cad_prev"),
-    )
+    st.markdown("**Profil in (x, y)**" if cad.is_1d(report) else "**Schnittvorschau**")
+    pick = 0
+    if not cad.is_1d(report):
+        pick = st.selectbox(
+            "Höhe y (µm)",
+            range(len(previews)),
+            format_func=lambda i: f"y = {previews[i]['y_um']:.6g}",
+            key=wkey("cad_prev"),
+        )
+    elif report.get("z_cut_um") is not None:
+        st.caption(f"Geschnitten bei z = {report['z_cut_um']:.6g} µm")
     pv = previews[pick]
     if pv.get("svg"):
         st.image(pv["svg"], width=420)
         st.download_button(
-            "Schnitt als SVG", pv["svg"], file_name=f"schnitt_y{pv['y_um']:.4g}.svg", mime="image/svg+xml"
+            "Schnitt als SVG",
+            pv["svg"],
+            file_name="profil_xy.svg" if pv.get("y_um") is None else f"schnitt_y{pv['y_um']:.4g}.svg",
+            mime="image/svg+xml",
         )
     else:
         st.warning(pv.get("error", "Kein Schnitt."))

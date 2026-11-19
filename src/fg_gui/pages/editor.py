@@ -364,7 +364,9 @@ with tab_struct:
             same = config_io.dumps(old_cfg.get("layers")) == config_io.dumps(cfg.get("layers"))
             cad_note = (
                 f"CAD-Bänder aus der Prüfung „{cad_job.label}“: wahre Höhen; die Aufteilung in x zeigt nur die "
-                "Flächenanteile der Materialien, ihre Lage zeigt die Draufsicht."
+                + ("Längenanteile" if (cad_report or {}).get("dimension") == "1D" else "Flächenanteile")
+                + " der Materialien, ihre Lage zeigt "
+                + ("das Profil." if (cad_report or {}).get("dimension") == "1D" else "die Draufsicht.")
             ) + ("" if same else " – Schichten seitdem geändert, bitte neu prüfen")
         else:
             st.info(
@@ -410,13 +412,20 @@ with tab_struct:
         if cad_note:
             st.caption(cad_note)
         if cad_previews:
-            with st.expander("CAD: Draufsicht der Bänder (aus der Prüfung)"):
-                pick_band = st.selectbox(
-                    "Höhe y (µm)",
-                    range(len(cad_previews)),
-                    format_func=lambda i: f"y = {cad_previews[i]['y_um']:.6g}",
-                    key="fg_struct_cad_prev",
-                )
+            one_d_cad = (cad_report or {}).get("dimension") == "1D"
+            with st.expander(
+                "CAD: Profil in (x, y) (aus der Prüfung)"
+                if one_d_cad
+                else "CAD: Draufsicht der Bänder (aus der Prüfung)"
+            ):
+                pick_band = 0
+                if not one_d_cad:
+                    pick_band = st.selectbox(
+                        "Höhe y (µm)",
+                        range(len(cad_previews)),
+                        format_func=lambda i: f"y = {cad_previews[i]['y_um']:.6g}",
+                        key="fg_struct_cad_prev",
+                    )
                 if cad_previews[pick_band].get("svg"):
                     st.image(cad_previews[pick_band]["svg"], width=420)
                 else:

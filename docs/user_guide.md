@@ -76,6 +76,18 @@ voraus (Seite *System*: „CAD-Slicer“). Die Seite arbeitet an der Konfigurati
 
 Danach rechnet *Einzelrechnung*, *Scan* oder *Nahfeld* die Konfiguration wie jede andere.
 
+**1D-Gitter (ab FourierGrating 0.20.0).** Bei `dimension: 1D` liest FourierGrating z-invariante Körper, also Linien eines
+Liniengitters, die entlang z extrudiert sind (Standard: −CAD Y; die Länge ist beliebig). Der Körper wird einmal bei
+z = z_cut geschnitten und mit dem Profil in (x, y) gerechnet. Die Seite zeigt dann:
+
+* **Zellursprung x₀** (nur x), dazu optional **Schnittebene z** (Haken „Schnittebene z festlegen“; sonst Mitte des
+  gemeinsamen z-Bereichs aller Körper). Das Normalenfeld hat nur das Raster (analytisch), Schnitthöhen entfallen.
+* **Prüfen**: Bänder `homogeneous`, `lamellar1d` oder `sectioned1d` mit **Längenanteilen** und genau eine Vorschau, das
+  **Profil in (x, y)**, mit dem verwendeten z_cut. Der Befund `NOT_Z_INVARIANT` heißt: der Körper ist keine Linie (z. B.
+  eine Säule) – dann die Dimension auf 2D stellen. `z_cut_um` ist nur in 1D erlaubt (die Seite warnt in 2D).
+* Im Editor (Reiter *Struktur*) erscheinen die Bänder mit wahren Höhen und das Profil; PML ist mit `sectioned1d` nicht
+  möglich (FourierGrating meldet es).
+
 ## Optimierung
 
 Maximiert oder minimiert L = Σ wᵢ·eᵢ über die Effizienzen von Beugungsordnungen, indem Zahlen der Konfiguration
