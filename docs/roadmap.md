@@ -75,10 +75,11 @@ Was der GUI fehlt, wird dort ergänzt (AGENTS.md, Abschnitt 1), nicht hier nachg
 - Nahfeld: Lage des Schnitts in x wählbar (z. B. `vertical_x_um`) bzw. x-Gitter ab beliebigem Startwert. Heute beginnt
   das x-Gitter immer bei 0, daher lässt sich ein Tiefenprofil (Linie entlang y) nur bei x = 0 rechnen; die GUI wählt
   sonst nur die nächste Spalte einer Karte aus.
-- CAD-Schicht in einer 1D-Konfiguration (`dimension: 1D`, Periode z = 0) ablehnen: heute meldet FourierGrating keinen
-  Fehler, `cad.check` und `solve` laufen unbegrenzt weiter (beobachtet mit `cad_pillar_array.json` als 1D, Version
-  0.19.0; nach 90 s und auch nach über 10 Minuten nicht fertig). Eine klare Meldung („CAD-Schichten brauchen 2D“) würde
-  genügen; die GUI hat dafür bisher keine eigene Prüfung.
+- CAD-Schichten in 1D-Konfigurationen (`dimension: 1D`, Periode z = 0): sollen unterstützt werden; die Umsetzung in
+  FourierGrating ist angekündigt. Stand 0.19.0: kein Fehler, aber `cad.check` und `solve` laufen unbegrenzt weiter
+  (beobachtet mit `cad_pillar_array.json` als 1D; nach 90 s und auch nach über 10 Minuten nicht fertig). Für die GUI
+  danach offen: CAD-Seite und Editor für 1D freigeben (Schichttyp, Prüfbericht, Struktur-Ansicht), Tests mit dem
+  neuen Kern. Bis dahin warnt die GUI nicht – ein 1D-Auftrag mit CAD-Schicht blockiert die Warteschlange.
 - Fehlermeldungen mit Feldpfad (JSON-Pointer, z. B. `/layers/1/materials/1`) in `FourierGratingError`, damit der
   Editor Fehler am Feld anzeigen kann. Heute enthalten sie nur Quelltextposition und Text (`unknown material 'x'`);
   `config_form.locate_error` rät über Stichwörter. Negative Schichtdicken werden nicht abgelehnt.
