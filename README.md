@@ -11,8 +11,9 @@ dessen Python-API (`fouriergrating`) auf. Rechnungen laufen im Hintergrund, die 
 >
 > * **Rechnen:** Seiten *Editor* (Formulare für 1D- und 2D-Schichten, JSON, Reiter *Struktur* mit Schnittbild und
 >   Maßen), *Einzelrechnung*, *Scan*, *Nahfeld* (Karten, 1D-Schnitte aus Karten oder eine direkt gerechnete Linie),
->   *CAD* (STEP-Upload, Prüfung, Vorschau), *Optimierung* (L-BFGS-B mit exakten Gradienten); dispersive Materialien
->   (Sellmeier, Cauchy, Drude–Lorentz, Tabellen, Import aus refractiveindex.info, Materialbibliothek).
+>   *CAD* (STEP-Upload, Prüfung, Vorschau; 2D-Körper und z-invariante Linien für 1D-Gitter), *Optimierung*
+>   (L-BFGS-B mit exakten Gradienten); dispersive Materialien (Sellmeier, Cauchy, Drude–Lorentz, Tabellen, Import aus
+>   refractiveindex.info, Materialbibliothek).
 > * **Betrieb:** Rechnungen im Hintergrund mit Warteschlange, gespeichert über Neustarts; Seiten *Rechnungen*
 >   (Download als ZIP/HDF5/JSON) und *System*; Sitzungskennung in der Adresszeile (`?s=…`), optional Benutzer vom Proxy;
 >   Logging, automatisches Aufräumen, Health-Check `fg-gui-health`.

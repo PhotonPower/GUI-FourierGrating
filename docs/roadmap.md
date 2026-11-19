@@ -92,7 +92,7 @@ Was der GUI fehlt, wird dort ergänzt (AGENTS.md, Abschnitt 1), nicht hier nachg
 - Fehlermeldungen mit Feldpfad (JSON-Pointer, z. B. `/layers/1/materials/1`) in `FourierGratingError`, damit der
   Editor Fehler am Feld anzeigen kann. Heute enthalten sie nur Quelltextposition und Text (`unknown material 'x'`);
   `config_form.locate_error` rät über Stichwörter. Negative Schichtdicken werden nicht abgelehnt.
-- Dispersion (FourierGrating M22): seit v0.19.0 in FourierGrating (`solver.MIN_VERSION` ist inzwischen 0.20.0). Für die GUI offen:
-  `material_eps` und `diagnostics["materials"]` kennen nur ε bzw. n der Rechenpunkte – eine Brechzahl-Vorschau (n, k)
-  über λ ohne Rechnung bräuchte ein öffentliches `fg.material_n` (heute nur privat `_core.material_values`); die
-  Vorschau zeigt deshalb ε′ und ε″.
+- Dispersion (FourierGrating M22): seit v0.19.0 in FourierGrating (`solver.MIN_VERSION` ist inzwischen 0.20.0). Für
+  die GUI offen: `material_eps` und `diagnostics["materials"]` kennen nur ε bzw. n der Rechenpunkte – eine
+  Brechzahl-Vorschau (n, k) über λ ohne Rechnung bräuchte ein öffentliches `fg.material_n` (heute nur privat
+  `_core.material_values`); die Vorschau zeigt deshalb ε′ und ε″.
