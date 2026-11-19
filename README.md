@@ -9,7 +9,8 @@ dessen Python-API (`fouriergrating`) auf. Rechnungen laufen im Hintergrund, die 
 
 > **Status (v0.12.2):** Alle Meilensteine G0–G9 sind umgesetzt.
 >
-> * **Rechnen:** Seiten *Editor* (Formulare für 1D- und 2D-Schichten, JSON), *Einzelrechnung*, *Scan*, *Nahfeld* (mit 1D-Linienschnitten),
+> * **Rechnen:** Seiten *Editor* (Formulare für 1D- und 2D-Schichten, JSON, Reiter *Struktur* mit Schnittbild und
+>   Maßen), *Einzelrechnung*, *Scan*, *Nahfeld* (Karten, 1D-Schnitte aus Karten oder eine direkt gerechnete Linie),
 >   *CAD* (STEP-Upload, Prüfung, Vorschau), *Optimierung* (L-BFGS-B mit exakten Gradienten); dispersive Materialien
 >   (Sellmeier, Cauchy, Drude–Lorentz, Tabellen, Import aus refractiveindex.info, Materialbibliothek).
 > * **Betrieb:** Rechnungen im Hintergrund mit Warteschlange, gespeichert über Neustarts; Seiten *Rechnungen*
@@ -54,11 +55,13 @@ Auf dem Server: [`docs/deployment_rtx6000.md`](docs/deployment_rtx6000.md) (Four
 ```
 src/fg_gui/          Python-Paket
   app.py             Einstieg (Navigation), Start: fg-gui bzw. streamlit run src/fg_gui/app.py
-  pages/             Streamlit-Seiten (single, jobs, system)
+  pages/             Streamlit-Seiten (editor, single, scan, nearfield, cad, optimize, jobs, system)
   solver.py          einzige Stelle, die fouriergrating importiert
   jobs.py            Hintergrundrechnungen (JobManager)
   config_io.py       JSON lesen/schreiben, Beispiele auflisten
   results.py         Ergebnisobjekte -> Tabellen
+  export.py, h5export.py   Download fertiger Rechnungen (ZIP, HDF5)
+  structure.py       Schnittbild der Struktur mit Maßen (nur Darstellung)
   settings.py        Einstellungen aus FG_GUI_*-Variablen
   state.py           geteilte Ressourcen (st.cache_resource), Sitzungszustand
 tests/               pytest, inkl. Seiten-Rauchtests (streamlit.testing), Ersatzmodul für fouriergrating

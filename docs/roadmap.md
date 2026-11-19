@@ -59,14 +59,14 @@ Reihenfolge wie aufgeführt (AGENTS.md).
     Schlüssel bleiben); `file` → `data` gleichwertig; Vorschau-Daten unverändert aus `material_eps` durchgereicht
     (Ersatzdaten); mit `-m solver`: `examples/dispersive_metal_grating.json` (Kopie in `tests/data/`) rechnet, Vorschau-
     und Diagnosewerte stimmen überein, `file` und `data` liefern bitgleiche Ergebnisse
-- [x] **G9** Rückmeldungen der Nutzer (0.12.0)
+- [x] **G9** Rückmeldungen der Nutzer (0.12.0–0.12.2)
   - HDF5-Download je Rechnung (`h5export.py`, Abhängigkeit `h5py`), Aufbau in `docs/user_guide.md`
   - Nahfeld: 1D-Schnitte (Linien) aus den Karten am nächsten Gitterpunkt, mit CSV
-  - Editor: Reiter *Struktur* – Schnittbild x–y und Draufsicht x–z mit Maßen (`structure.py`); CAD-Schichten mit Bändern aus der
-    CAD-Prüfung (0.12.1)
+  - Editor: Reiter *Struktur* – Schnittbild x–y und Draufsicht x–z mit Maßen (`structure.py`); CAD-Schichten mit
+    Bändern aus der CAD-Prüfung (0.12.1)
   - Nahfeld: Rechenart „Nur eine Linie“ (2D; `ny = 1`, `nz = 1`) (0.12.2)
-  - Abnahme: HDF5 lesbar für alle Arten (Test mit `h5py`); Linien identisch zu Zeile/Spalte der Karte; alle Beispiele von
-    FourierGrating lassen sich zeichnen
+  - Abnahme: HDF5 lesbar für alle Arten (Test mit `h5py`); Linien identisch zu Zeile/Spalte der Karte; alle Beispiele
+    von FourierGrating lassen sich zeichnen; mit `-m solver`: gerechnete Linie (1D und 2D) gleich der Karten-Zeile
 
 ## Anforderungen an FourierGrating
 
