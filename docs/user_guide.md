@@ -14,7 +14,9 @@ Startseite zum Bearbeiten und Rechnen. **Quelle**: *Neu* (1D-Lamellengitter als 
 * **Schichten** – von unten nach oben; ↑ ↓ ✕ ordnen bzw. löschen. `homogeneous`, `lamellar1d` (Tabelle der Lamellen),
   `profile1d` haben Formulare; andere Typen (2D, CAD) bearbeitest du als JSON der Schicht.
 * **Struktur** – Schnittbild x–y mit Maßen (Periode, Schichtdicken, Lamellenbreiten, Profiltiefen), gezeichnet aus der
-  Konfiguration ohne Rechnung; bei 2D-Schichten Schnitt bei wählbarem z und Draufsicht x–z mit Formmaßen; PNG-Download.
+  Konfiguration ohne Rechnung. Eine CAD-Schicht hat in der Konfiguration keine Höhe: bis zur Prüfung (Seite *CAD*,
+  „Prüfen“) ist sie nur mit angenommener Höhe gestrichelt angedeutet, danach erscheinen ihre Bänder mit wahren Höhen
+  (die Einteilung in x zeigt nur die Flächenanteile der Materialien) und die Draufsicht der Bänder. Bei 2D-Schichten Schnitt bei wählbarem z und Draufsicht x–z mit Formmaßen; PNG-Download.
 * **Löser** – RK/RCWA-Optionen, Rechenkern, Genauigkeit, Threads.
 * **JSON** – ganze Konfiguration; „Übernehmen“ ersetzt die Formularwerte; „Herunterladen“ speichert die Datei.
 

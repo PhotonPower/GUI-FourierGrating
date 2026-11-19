@@ -9,14 +9,17 @@ laufen von unten (Substrat) nach oben (Superstrat).
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
 
 SAMPLES = 720  # Abtastpunkte entlang x für Profile und Schnitte
 TWO_D_TYPES = ("polygon2d", "contour2d")
-SIMPLE_NOTE = {"cad": "CAD-Körper (Höhe aus dem STEP-Körper)", "rings": "Ringe (rotationssymmetrisch)"}
+SIMPLE_NOTE = {
+    "cad": "CAD-Körper – Höhe und Bänder liefert die Seite „CAD“ (Prüfen)",
+    "rings": "Ringe (rotationssymmetrisch)",
+}
 
 
 # ---------------------------------------------------------------- Schichtstapel
@@ -28,6 +31,7 @@ class Layer:
     y1: float
     cfg: dict
     nominal: bool = False  # Höhe nicht aus der Konfiguration bekannt (z. B. CAD): nur angenommen
+    bands: list[dict] = field(default_factory=list)  # CAD: Bänder aus dem Prüfbericht in Stapelkoordinaten
 
     @property
     def height(self) -> float:
@@ -43,16 +47,34 @@ def layer_height(layer: dict) -> float | None:
     return None
 
 
-def stack(cfg: dict) -> list[Layer]:
-    """Schichten von unten nach oben mit ``y0``/``y1``; Schichten ohne Dickenangabe erhalten eine Nennhöhe."""
+def cad_bands(report: dict | None) -> list[dict]:
+    """Bänder (``y0_um`` < ``y1_um``) aus dem Prüfbericht von ``fouriergrating.cad.check``, von unten nach oben."""
+    bands = [b for b in (report or {}).get("bands") or [] if isinstance(b, dict) and "y0_um" in b and "y1_um" in b]
+    return sorted((b for b in bands if b["y1_um"] > b["y0_um"]), key=lambda b: b["y0_um"])
+
+
+def stack(cfg: dict, cad_report: dict | None = None) -> list[Layer]:
+    """Schichten von unten nach oben mit ``y0``/``y1``; Schichten ohne Dickenangabe erhalten eine Nennhöhe.
+
+    Die erste CAD-Schicht erhält Höhe und Bänder aus ``cad_report`` (Prüfbericht der Seite „CAD“), sofern angegeben.
+    """
     layers = [lay for lay in cfg.get("layers") or [] if isinstance(lay, dict)]
     known = [h for h in (layer_height(lay) for lay in layers) if h]
     nominal = float(np.median(known)) if known else 0.2
+    bands = cad_bands(cad_report)
     out, y = [], 0.0
     for i, lay in enumerate(layers):
         h = layer_height(lay)
-        out.append(Layer(i, str(lay.get("type", "?")), y, y + (h if h is not None else nominal), lay, h is None))
-        y = out[-1].y1
+        kind = str(lay.get("type", "?"))
+        cad_here = kind == "cad" and h is None and bands and not any(x.bands for x in out)
+        if cad_here:
+            base = bands[0]["y0_um"]
+            h = bands[-1]["y1_um"] - base
+        layer = Layer(i, kind, y, y + (h if h is not None else nominal), lay, h is None)
+        if cad_here:
+            layer.bands = [{**b, "y0_um": y + b["y0_um"] - base, "y1_um": y + b["y1_um"] - base} for b in bands]
+        out.append(layer)
+        y = layer.y1
     return out
 
 
@@ -256,7 +278,35 @@ def _legend(ax, colors: dict, used: set[str]) -> None:
         )
 
 
-def figure_xy(cfg: dict, z0: float = 0.0, periods: int = 1, equal: bool = True):
+def _cad_bands(ax, lay: Layer, ox: float, px: float, box, label: bool) -> None:
+    """Bänder einer CAD-Schicht: wahre Höhen; die Flächenanteile der Materialien teilen das Band in x nur ein.
+
+    Die Lage der Materialien im Band ergibt sich aus der Draufsicht (Seite „CAD“), nicht aus diesem Bild.
+    """
+    for b in lay.bands:
+        fr = {str(k): float(v) for k, v in (b.get("area_fractions") or {}).items() if v and v > 0}
+        total = sum(fr.values()) or 1.0
+        x = ox
+        for name, v in sorted(fr.items(), key=lambda kv: -kv[1]):
+            w = px * v / total
+            box(x, x + w, b["y0_um"], b["y1_um"], name, hatch=None if len(fr) == 1 else "..")
+            x += w
+        if not fr:
+            box(ox, ox + px, b["y0_um"], b["y1_um"], "", alpha=0.35, hatch="xx")
+        if label:
+            parts = ", ".join(f"{k} {v / total:.0%}" for k, v in fr.items())
+            ax.text(
+                ox + px / 2,
+                (b["y0_um"] + b["y1_um"]) / 2,
+                f"{b.get('kind', '')} · {b['y1_um'] - b['y0_um']:.4g} µm\n{parts}",
+                ha="center",
+                va="center",
+                fontsize=7,
+                bbox={"facecolor": "w", "alpha": 0.7, "lw": 0, "pad": 1.5},
+            )
+
+
+def figure_xy(cfg: dict, z0: float = 0.0, periods: int = 1, equal: bool = True, cad_report: dict | None = None):
     """Schnitt (x, y) durch den Stapel mit Maßen: Perioden, Schichtdicken, Lamellenbreiten, Profiltiefen.
 
     2D-Schichten werden bei z = ``z0`` geschnitten. Superstrat und Substrat sind halbunendlich und nur angedeutet.
@@ -265,7 +315,7 @@ def figure_xy(cfg: dict, z0: float = 0.0, periods: int = 1, equal: bool = True):
     from matplotlib.patches import Polygon, Rectangle
 
     px, pz = period(cfg)
-    layers = stack(cfg)
+    layers = stack(cfg, cad_report)
     colors = _colors(cfg)
     used: set[str] = set()
     top = layers[-1].y1 if layers else 0.0
@@ -320,6 +370,8 @@ def figure_xy(cfg: dict, z0: float = 0.0, periods: int = 1, equal: bool = True):
             elif lay.type in TWO_D_TYPES:
                 for a, b, name in xy_runs(c, px, pz, z0):
                     box(ox + a, ox + b, lay.y0, lay.y1, name)
+            elif lay.bands:
+                _cad_bands(ax, lay, ox, px, box, k == 0)
             else:
                 box(ox, ox + px, lay.y0, lay.y1, "", alpha=0.35, hatch="xx", linestyle="--")
                 ax.text(
@@ -436,14 +488,19 @@ def _shape_dims(ax, inc: Any) -> None:
         return
 
 
-def describe(cfg: dict) -> list[dict]:
-    """Tabelle zur Struktur: Schicht, Typ, Dicke, Materialien – für die Übersicht neben dem Bild."""
+def describe(cfg: dict, cad_report: dict | None = None) -> list[dict]:
+    """Tabelle zur Struktur: Schicht, Typ, Dicke, Materialien – für die Übersicht neben dem Bild.
+
+    Mit ``cad_report`` erscheinen die Bänder der CAD-Schicht als eigene Zeilen (Nr z. B. ``1.2``).
+    """
     rows = []
-    for lay in stack(cfg):
+    for lay in stack(cfg, cad_report):
         c = lay.cfg
-        mats = c.get("materials") or [
-            m for m in (c.get("background"), c.get("material"), c.get("below"), c.get("above")) if m
-        ]
+        mats = (
+            c.get("materials")
+            or [b.get("material") for b in c.get("bodies") or [] if isinstance(b, dict) and b.get("material")]
+            or [m for m in (c.get("background"), c.get("material"), c.get("below"), c.get("above")) if m]
+        )
         rows.append(
             {
                 "Nr": lay.index + 1,
@@ -454,4 +511,16 @@ def describe(cfg: dict) -> list[dict]:
                 "Materialien": ", ".join(map(str, mats)),
             }
         )
+        for j, b in enumerate(lay.bands):
+            fr = b.get("area_fractions") or {}
+            rows.append(
+                {
+                    "Nr": f"{lay.index + 1}.{j + 1}",
+                    "Typ": f"CAD-Band ({b.get('kind', '')})",
+                    "Dicke (µm)": round(b["y1_um"] - b["y0_um"], 6),
+                    "y von (µm)": round(b["y0_um"], 6),
+                    "y bis (µm)": round(b["y1_um"], 6),
+                    "Materialien": ", ".join(f"{k} {v:.1%}" for k, v in fr.items()),
+                }
+            )
     return rows

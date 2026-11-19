@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.12.1] – 2026-11-19
+
+### Hinzugefügt
+- Reiter *Struktur*: CAD-Schichten erscheinen mit Höhe und Bändern aus dem Prüfbericht der Seite *CAD* (wahre Höhen,
+  Flächenanteile der Materialien je Band, Draufsicht der Bänder, Bänder als Tabellenzeilen). Ohne Prüfung bleibt die
+  Höhe angenommen und gekennzeichnet; geänderte Schichten seit der Prüfung werden vermerkt.
+
 ## [0.12.0] – 2026-11-19
 
 ### Hinzugefügt (Rückmeldung der Nutzer)

@@ -237,6 +237,29 @@ def test_cad_page_check_shows_findings_bands_and_preview(fake_fg, tmp_path, monk
     assert job.kind == "cad" and job.result()["previews"][0]["y_um"] == pytest.approx(0.1)
 
 
+def test_editor_structure_tab_uses_cad_check_bands(fake_fg, tmp_path, monkeypatch):
+    from conftest import FAKE_STEP
+    from fg_gui import cad
+
+    monkeypatch.setenv("FG_GUI_DATA_DIR", str(tmp_path / "data"))
+    step = cad.save_upload(FAKE_STEP.encode(), tmp_path / "data" / "uploads")
+    at = _cad_page(_cad_cfg(str(step), [{"name": "Pillar", "material": "bar"}]))
+    at.switch_page(str(Path(APP).parent / "pages" / "editor.py"))
+    at.run()
+    assert not at.exception, at.exception
+    assert any("nach „Prüfen“" in i.value for i in at.info)  # noch keine Prüfung: Höhe angenommen
+    at.switch_page(str(Path(APP).parent / "pages" / "cad.py"))
+    at.run()
+    next(b for b in at.button if b.label == "Prüfen").click().run()
+    _wait(at, lambda: at.success)
+    at.switch_page(str(Path(APP).parent / "pages" / "editor.py"))
+    at.run()
+    assert not at.exception, at.exception
+    assert not any("nach „Prüfen“" in i.value for i in at.info)
+    assert any("CAD-Bänder aus der Prüfung" in c.value for c in at.caption)
+    assert any(s.label.startswith("Höhe y") for s in at.selectbox)  # Draufsicht aus der Prüfung
+
+
 def test_cad_page_reports_errors(fake_fg, tmp_path, monkeypatch):
     from conftest import FAKE_STEP
     from fg_gui import cad

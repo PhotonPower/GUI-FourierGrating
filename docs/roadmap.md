@@ -62,7 +62,8 @@ Reihenfolge wie aufgeführt (AGENTS.md).
 - [x] **G9** Rückmeldungen der Nutzer (0.12.0)
   - HDF5-Download je Rechnung (`h5export.py`, Abhängigkeit `h5py`), Aufbau in `docs/user_guide.md`
   - Nahfeld: 1D-Schnitte (Linien) aus den Karten am nächsten Gitterpunkt, mit CSV
-  - Editor: Reiter *Struktur* – Schnittbild x–y und Draufsicht x–z mit Maßen (`structure.py`)
+  - Editor: Reiter *Struktur* – Schnittbild x–y und Draufsicht x–z mit Maßen (`structure.py`); CAD-Schichten mit Bändern aus der
+    CAD-Prüfung (0.12.1)
   - Abnahme: HDF5 lesbar für alle Arten (Test mit `h5py`); Linien identisch zu Zeile/Spalte der Karte; alle Beispiele von
     FourierGrating lassen sich zeichnen
 

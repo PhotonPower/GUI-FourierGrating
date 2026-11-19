@@ -354,6 +354,23 @@ with tab_struct:
         "Schnittbild der Struktur mit Maßen, gezeichnet aus der Konfiguration (keine Rechnung). y ist die "
         "Schichtnormale, y = 0 an der Substratgrenze; Schichten laufen von unten nach oben."
     )
+    cad_report, cad_previews, cad_note = None, [], ""
+    if any(isinstance(lay, dict) and lay.get("type") == "cad" for lay in cfg.get("layers") or []):
+        cad_job = job_manager().get(st.session_state.get("fg_cad_job", ""))
+        if cad_job is not None and cad_job.status == DONE and isinstance(cad_job.result(), dict):
+            cad_report = cad_job.result().get("report")
+            cad_previews = cad_job.result().get("previews") or []
+            old_cfg = job_manager().config(cad_job.id) or {}
+            same = config_io.dumps(old_cfg.get("layers")) == config_io.dumps(cfg.get("layers"))
+            cad_note = (
+                f"CAD-Bänder aus der Prüfung „{cad_job.label}“: wahre Höhen; die Aufteilung in x zeigt nur die "
+                "Flächenanteile der Materialien, ihre Lage zeigt die Draufsicht."
+            ) + ("" if same else " – Schichten seitdem geändert, bitte neu prüfen")
+        else:
+            st.info(
+                "CAD-Schicht: Höhe und Bänder erscheinen nach „Prüfen“ auf der Seite *CAD*; "
+                "bis dahin ist die Höhe angenommen."
+            )
     if not structure.stack(cfg):
         st.info("Die Konfiguration hat noch keine Schichten.")
     elif structure.period(cfg)[0] <= 0:
@@ -370,7 +387,7 @@ with tab_struct:
                 "Schnitt bei z (µm)", value=pz / 2, min_value=0.0, max_value=pz, format="%.4f", key="fg_struct_z"
             )
         try:
-            fig = structure.figure_xy(cfg, z0=float(z0), periods=int(n_per), equal=equal)
+            fig = structure.figure_xy(cfg, z0=float(z0), periods=int(n_per), equal=equal, cad_report=cad_report)
             st.pyplot(fig, clear_figure=False)
             st.download_button(
                 "Schnittbild (.png)", nearfield.png_bytes(fig), file_name="struktur_xy.png", mime="image/png"
@@ -390,7 +407,21 @@ with tab_struct:
                 st.pyplot(structure.figure_xz(cfg, int(pick), periods=int(n_per)), clear_figure=False)
             except Exception as e:  # noqa: BLE001
                 st.error(f"Die Draufsicht lässt sich nicht zeichnen: {type(e).__name__}: {e}")
-        st.dataframe(pd.DataFrame(structure.describe(cfg)), hide_index=True, width="stretch")
+        if cad_note:
+            st.caption(cad_note)
+        if cad_previews:
+            with st.expander("CAD: Draufsicht der Bänder (aus der Prüfung)"):
+                pick_band = st.selectbox(
+                    "Höhe y (µm)",
+                    range(len(cad_previews)),
+                    format_func=lambda i: f"y = {cad_previews[i]['y_um']:.6g}",
+                    key="fg_struct_cad_prev",
+                )
+                if cad_previews[pick_band].get("svg"):
+                    st.image(cad_previews[pick_band]["svg"], width=420)
+                else:
+                    st.warning(cad_previews[pick_band].get("error", "Kein Schnitt."))
+        st.dataframe(pd.DataFrame(structure.describe(cfg, cad_report)), hide_index=True, width="stretch")
 
 with tab_solver:
     section_error("solver")

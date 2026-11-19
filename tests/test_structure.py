@@ -140,3 +140,63 @@ def test_nan_free_geometry():
     x = np.linspace(0, 1, 50)
     assert not np.isnan(st.profile_height({"type": "profile1d", "shape": "sinus", "depth_um": 0.1}, x, 1.0)).any()
     assert math.isfinite(st.stack(cfg_1d({"type": "homogeneous", "thickness_um": 0.1, "material": "si"}))[0].y1)
+
+
+# ---------------------------------------------------------------- CAD-Schicht mit Prüfbericht
+CAD_REPORT = {
+    "bands": [
+        {"y0_um": 0.0, "y1_um": 0.2, "kind": "sectioned", "area_fractions": {"air": 0.77, "si": 0.23}},
+        {"y0_um": 0.2, "y1_um": 0.26, "kind": "extrusion", "area_fractions": {"air": 0.85, "sio2": 0.15}},
+    ],
+    "ok": True,
+}
+
+
+def cad_cfg():
+    cfg = cfg_1d({"type": "homogeneous", "thickness_um": 0.1, "material": "si"}, {"type": "cad", "file": "x.step"})
+    cfg["materials"]["sio2"] = {"n": 1.45}
+    cfg["layers"][1]["bodies"] = [{"name": "Pillar", "material": "si"}, {"name": "Lid", "material": "sio2"}]
+    return cfg
+
+
+def test_cad_layer_without_report_is_nominal():
+    lay = st.stack(cad_cfg())[1]
+    assert lay.nominal and lay.bands == [] and lay.height == pytest.approx(0.1)
+
+
+def test_cad_layer_takes_height_and_bands_from_report():
+    lays = st.stack(cad_cfg(), CAD_REPORT)
+    cad = lays[1]
+    assert not cad.nominal and cad.y0 == pytest.approx(0.1) and cad.y1 == pytest.approx(0.36)
+    assert [(b["y0_um"], b["y1_um"]) for b in cad.bands] == [
+        (pytest.approx(0.1), pytest.approx(0.3)),
+        (pytest.approx(0.3), pytest.approx(0.36)),
+    ]
+    # Bänder in beliebiger Reihenfolge und mit Höhe 0 werden geordnet bzw. verworfen
+    messy = {"bands": [CAD_REPORT["bands"][1], CAD_REPORT["bands"][0], {"y0_um": 1.0, "y1_um": 1.0}, {"kind": "x"}]}
+    assert len(st.cad_bands(messy)) == 2 and st.cad_bands(messy)[0]["y0_um"] == 0.0 and st.cad_bands(None) == []
+
+
+def test_cad_report_only_applies_to_first_cad_layer_and_not_to_given_heights():
+    cfg = cad_cfg()
+    cfg["layers"].append({"type": "cad", "file": "y.step"})
+    cfg["layers"].append({"type": "cad", "thickness_um": 0.5, "file": "z.step"})
+    lays = st.stack(cfg, CAD_REPORT)
+    assert lays[1].bands and not lays[2].bands and lays[2].nominal
+    assert not lays[3].bands and lays[3].height == pytest.approx(0.5)
+
+
+def test_describe_lists_bands_and_body_materials():
+    rows = st.describe(cad_cfg(), CAD_REPORT)
+    assert [r["Nr"] for r in rows] == [1, 2, "2.1", "2.2"]
+    assert rows[1]["Materialien"] == "si, sio2" and rows[2]["Typ"] == "CAD-Band (sectioned)"
+    assert rows[2]["Dicke (µm)"] == pytest.approx(0.2) and "si 23.0%" in rows[2]["Materialien"]
+    assert st.describe(cad_cfg())[1]["Dicke (µm)"] is None  # ohne Bericht: Höhe unbekannt
+
+
+def test_figure_with_cad_bands_draws_labels():
+    fig = st.figure_xy(cad_cfg(), periods=2, cad_report=CAD_REPORT)
+    texts = [t.get_text() for t in fig.axes[0].texts]
+    assert sum("sectioned" in t for t in texts) == 1 and sum("extrusion" in t for t in texts) == 1  # nur 1. Periode
+    assert any("Gesamtdicke der Schichten 0.36" in fig.axes[0].get_title() for _ in [0])
+    assert any("angenommen" in t.get_text() for t in st.figure_xy(cad_cfg()).axes[0].texts)  # ohne Bericht
