@@ -109,7 +109,7 @@ class FakeSimulation:
         return w * (1.0 - sum(di * di for di in d)), np.array([-2.0 * w * di for di in d])
 
 
-def make_fake_fg(version: str = "0.19.0") -> types.ModuleType:
+def make_fake_fg(version: str = "0.20.0") -> types.ModuleType:
     fg = types.ModuleType("fouriergrating")
     fg.__version__ = version
     fg.core_variant = lambda: "cpu"

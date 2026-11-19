@@ -75,15 +75,18 @@ Was der GUI fehlt, wird dort ergänzt (AGENTS.md, Abschnitt 1), nicht hier nachg
 - Nahfeld: Lage des Schnitts in x wählbar (z. B. `vertical_x_um`) bzw. x-Gitter ab beliebigem Startwert. Heute beginnt
   das x-Gitter immer bei 0, daher lässt sich ein Tiefenprofil (Linie entlang y) nur bei x = 0 rechnen; die GUI wählt
   sonst nur die nächste Spalte einer Karte aus.
-- CAD-Schichten in 1D-Konfigurationen (`dimension: 1D`, Periode z = 0): sollen unterstützt werden; die Umsetzung in
-  FourierGrating ist angekündigt. Stand 0.19.0: kein Fehler, aber `cad.check` und `solve` laufen unbegrenzt weiter
-  (beobachtet mit `cad_pillar_array.json` als 1D; nach 90 s und auch nach über 10 Minuten nicht fertig). Für die GUI
-  danach offen: CAD-Seite und Editor für 1D freigeben (Schichttyp, Prüfbericht, Struktur-Ansicht), Tests mit dem
-  neuen Kern. Bis dahin warnt die GUI nicht – ein 1D-Auftrag mit CAD-Schicht blockiert die Warteschlange.
+- CAD-Schichten in 1D-Konfigurationen (`dimension: 1D`, Periode z = 0): **in FourierGrating seit v0.20.0 vorhanden**
+  (M23, `docs/cad.md` dort; `solver.MIN_VERSION` ist 0.20.0). Erlaubt sind z-invariante Körper, also Linien, die entlang
+  FG z extrudiert sind (Standard −CAD Y). FourierGrating schneidet sie einmal in der Ebene (x, y), die Bänder werden
+  `homogeneous`, `lamellar1d` oder `sectioned1d`. Beispiel: `examples/cad_line_grating_1d.json` mit
+  `cad/line_grating.step`. Nicht z-invariante Körper wie die Säulen von `cad_pillar_array.json` meldet `cad.check`
+  sofort als `NOT_Z_INVARIANT`. Das beobachtete endlose Rechnen betraf 0.19.0, die noch keinen 1D-Pfad hatte. Für die
+  GUI offen: CAD-Seite und Editor für 1D freigeben (Schichttyp, Prüfbericht mit `dimension: "1D"` und
+  `cell_origin_um` = [x0], Struktur-Ansicht der Bänder), Tests mit dem echten Kern (`-m solver`).
 - Fehlermeldungen mit Feldpfad (JSON-Pointer, z. B. `/layers/1/materials/1`) in `FourierGratingError`, damit der
   Editor Fehler am Feld anzeigen kann. Heute enthalten sie nur Quelltextposition und Text (`unknown material 'x'`);
   `config_form.locate_error` rät über Stichwörter. Negative Schichtdicken werden nicht abgelehnt.
-- Dispersion (FourierGrating M22): seit v0.19.0 in FourierGrating (`solver.MIN_VERSION` ist 0.19.0). Für die GUI offen:
+- Dispersion (FourierGrating M22): seit v0.19.0 in FourierGrating (`solver.MIN_VERSION` ist inzwischen 0.20.0). Für die GUI offen:
   `material_eps` und `diagnostics["materials"]` kennen nur ε bzw. n der Rechenpunkte – eine Brechzahl-Vorschau (n, k)
   über λ ohne Rechnung bräuchte ein öffentliches `fg.material_n` (heute nur privat `_core.material_values`); die
   Vorschau zeigt deshalb ε′ und ε″.
