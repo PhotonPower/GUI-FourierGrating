@@ -315,20 +315,81 @@ with tab_layers:
                 else:  # profile1d
                     choice(st, "Form", layer, "shape", cf.PROFILE_SHAPES, "sinus")
                     shape = layer.get("shape", "sinus")
-                    c = st.columns(3)
-                    number(c[0], "Tiefe (µm)", layer, "depth_um", 0.1, min_value=0.0)
-                    choice(c[1], "Material unten", layer, "below", mat_names)
-                    choice(c[2], "Material oben", layer, "above", mat_names)
-                    if shape == "triangle":
+                    if shape == "nurbs":
+                        if not isinstance(layer.get("nurbs"), dict):
+                            layer["nurbs"] = cf.nurbs_default(float(per.get("x") or 1.0), layer.get("depth_um") or 0.1)
+                        nb = layer["nurbs"]
+                        st.caption(
+                            "Offene, periodische NURBS-Linie über genau eine Periode (nur 1D, FourierGrating M24): "
+                            "unter ihr liegt „Material unten“, über ihr „Material oben“. Das Ende muss gleich dem "
+                            "Anfang plus (Periode, 0) sein; Überhänge sind erlaubt, Selbstschnitte nicht. x, y in µm, "
+                            "y über der Unterkante der Schicht."
+                        )
+                        c = st.columns(3)
+                        choice(c[0], "Material unten", layer, "below", mat_names)
+                        choice(c[1], "Material oben", layer, "above", mat_names)
+                        depth = c[2].number_input(
+                            "Tiefe (µm, 0 = Maximum der Kurve)",
+                            value=float(layer.get("depth_um") or 0.0),
+                            min_value=0.0,
+                            format="%.10g",
+                            key=_k("nbdepth", i),
+                        )
+                        if depth > 0 and layer.get("depth_um") != depth:
+                            layer["depth_um"] = depth
+                        elif depth == 0:
+                            layer.pop("depth_um", None)
+                        st.markdown("**Kontrollpunkte**")
+                        df = st.data_editor(
+                            pd.DataFrame(cf.nurbs_rows(nb), columns=list(cf.NURBS_COLUMNS)),
+                            num_rows="dynamic",
+                            hide_index=True,
+                            key=_k("nbpts", i),
+                            column_config={
+                                "x_um": st.column_config.NumberColumn("x (µm)", format="%.10g"),
+                                "y_um": st.column_config.NumberColumn("y (µm)", format="%.10g"),
+                                "Gewicht": st.column_config.NumberColumn(
+                                    "Gewicht (> 0)", format="%.10g", min_value=0.0
+                                ),
+                            },
+                        )
+                        cf.nurbs_apply(nb, df.to_dict("records"))
+                        c = st.columns([1, 3, 2])
+                        integer(c[0], "Grad", nb, "degree", 2, minimum=1)
+                        text_list(c[1], "Knoten (geklemmt, nicht fallend)", nb, "knots")
+                        c[2].write("")
+                        if c[2].button("Knoten neu erzeugen", key=_k("nbknots", i), help="gleichmäßig, geklemmt"):
+                            try:
+                                nb["knots"] = cf.clamped_knots(len(nb["points_um"]), int(nb.get("degree", 2)))
+                                _bump()
+                                st.rerun()
+                            except cf.FormError as e:
+                                st.error(str(e))
+                        n_pts, deg = len(nb.get("points_um") or []), int(nb.get("degree") or 0)
+                        if len(nb.get("knots") or []) != n_pts + deg + 1:
+                            st.warning(
+                                f"Knotenvektor: Länge {len(nb.get('knots') or [])}, erwartet Punkte + Grad + 1 = "
+                                f"{n_pts + deg + 1} – „Knoten neu erzeugen“ füllt ihn passend."
+                            )
+                        c = st.columns(3)
+                        integer(c[0], "Scheiben (0 = automatisch)", layer, "slices", 0)
+                        integer(c[1], "Tschebyschow-Knoten (0 = aus)", layer, "chebyshev_nodes", 0)
+                        choice(c[2], "Faktorisierung", layer, "factorization", cf.NURBS_FACTORIZATIONS, "auto")
+                    else:
+                        c = st.columns(3)
+                        number(c[0], "Tiefe (µm)", layer, "depth_um", 0.1, min_value=0.0)
+                        choice(c[1], "Material unten", layer, "below", mat_names)
+                        choice(c[2], "Material oben", layer, "above", mat_names)
+                        if shape == "triangle":
+                            c = st.columns(2)
+                            number(c[0], "Blazewinkel (°)", layer, "blaze_deg", 10.0)
+                            number(c[1], "Scheitelwinkel (°)", layer, "apex_deg", 90.0)
+                        elif shape == "points":
+                            text_list(st, "x (µm)", layer, "x_um")
+                            text_list(st, "y (µm)", layer, "y_um")
                         c = st.columns(2)
-                        number(c[0], "Blazewinkel (°)", layer, "blaze_deg", 10.0)
-                        number(c[1], "Scheitelwinkel (°)", layer, "apex_deg", 90.0)
-                    elif shape == "points":
-                        text_list(st, "x (µm)", layer, "x_um")
-                        text_list(st, "y (µm)", layer, "y_um")
-                    c = st.columns(2)
-                    integer(c[0], "Scheiben (0 = automatisch)", layer, "slices", 0)
-                    choice(c[1], "Faktorisierung", layer, "factorization", cf.PROFILE_FACTORIZATIONS, "auto")
+                        integer(c[0], "Scheiben (0 = automatisch)", layer, "slices", 0)
+                        choice(c[1], "Faktorisierung", layer, "factorization", cf.PROFILE_FACTORIZATIONS, "auto")
             else:
                 st.info(f"Für „{ltype}“ gibt es noch kein Formular (folgt); bearbeite die Schicht als JSON.")
                 raw = st.text_area("Schicht (JSON)", value=config_io.dumps(layer), height=240, key=_k("lj", i))

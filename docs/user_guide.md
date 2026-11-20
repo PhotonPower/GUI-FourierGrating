@@ -76,7 +76,14 @@ voraus (Seite *System*: „CAD-Slicer“). Die Seite arbeitet an der Konfigurati
 
 Danach rechnet *Einzelrechnung*, *Scan* oder *Nahfeld* die Konfiguration wie jede andere.
 
-**Einfache Linie im Editor (1D).** Reiter *Schichten* → Menü „Neue Schicht“ → „cad: Linie aus STEP-Datei“ (nur 1D): STEP-Datei mit genau einem
+**NURBS-Linie im Editor (1D, FourierGrating M24).** Reiter *Schichten* → Schichttyp `profile1d` → Form `nurbs`: eine
+offene, periodische Linie über eine Periode; darunter liegt „Material unten“, darüber „Material oben“. Kontrollpunkte
+(x, y in µm, y über der Unterkante der Schicht; Gewicht optional) stehen in einer Tabelle, dazu Grad und Knotenvektor
+(„Knoten neu erzeugen“ setzt einen gleichmäßigen, geklemmten). Das Ende muss gleich dem Anfang plus (Periode, 0) sein;
+Überhänge sind erlaubt, Selbstschnitte nicht. Verstößt die Linie dagegen, meldet FourierGrating `NURBS_…` mit dem
+JSON-Pointer. Ohne `depth_um` gilt das Maximum der Kurve.
+
+**Einfache Linie aus STEP im Editor (1D).** Reiter *Schichten* → Menü „Neue Schicht“ → „cad: Linie aus STEP-Datei“ (nur 1D): STEP-Datei mit genau einem
 Körper hochladen, der die ganze Periode ausfüllt (Fläche unter der Linie, entlang z extrudiert, Proportionen wie
 gewünscht). Die GUI skaliert die Datei so, dass die Breite (CAD x) der Periode Λ entspricht, und zeigt die sich
 ergebende Höhe. Wählen Sie das **Material unterhalb** (Körper) und **oberhalb** (Hintergrund) der Linie und fügen Sie

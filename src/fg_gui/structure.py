@@ -44,6 +44,11 @@ def layer_height(layer: dict) -> float | None:
         v = layer.get(key)
         if isinstance(v, int | float) and not isinstance(v, bool) and v >= 0:
             return float(v)
+    if layer.get("type") == "profile1d" and layer.get("shape") == "nurbs" and isinstance(layer.get("nurbs"), dict):
+        try:  # ohne depth_um: Maximum der Kurve (FourierGrating-Standard)
+            return float(np.max(_nurbs(layer["nurbs"])[:, 1]))
+        except (KeyError, TypeError, ValueError, IndexError):
+            return None
     return None
 
 
@@ -354,6 +359,18 @@ def figure_xy(cfg: dict, z0: float = 0.0, periods: int = 1, equal: bool = True, 
                             fontsize=7,
                             rotation=90 if bp[i + 1] - bp[i] < 0.06 * px else 0,
                         )
+            elif lay.type == "profile1d" and c.get("shape") == "nurbs" and isinstance(c.get("nurbs"), dict):
+                try:
+                    pts = _nurbs(c["nurbs"]) + [ox, lay.y0]
+                except (KeyError, TypeError, ValueError, IndexError):
+                    box(ox, ox + px, lay.y0, lay.y1, str(c.get("below", "")), alpha=0.5, hatch="..")
+                    continue
+                for name, base in ((c.get("below", ""), lay.y0), (c.get("above", ""), lay.y1)):
+                    used.add(str(name))
+                    verts = [*map(tuple, pts), (pts[-1][0], base), (pts[0][0], base)]
+                    ax.add_patch(Polygon(verts, facecolor=_fill(colors, str(name)), edgecolor="none"))
+                ax.plot(pts[:, 0], pts[:, 1], "k", lw=0.8)
+                ax.plot([ox, ox + px], [lay.y1, lay.y1], "k:", lw=0.4)
             elif lay.type in ("profile1d", "profile2d"):
                 g = profile_height({**c, "_pz": pz}, np.linspace(0, px, SAMPLES + 1), px, z0)
                 if g is None:

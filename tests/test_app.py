@@ -733,3 +733,22 @@ def test_editor_offers_line_import_only_in_1d(fake_fg, tmp_path, monkeypatch):
         assert not at.exception, at.exception
         opts = next(b for b in at.selectbox if b.label == "Neue Schicht").options
         assert ("cad: Linie aus STEP-Datei" in opts) is expected, dim
+
+
+def test_editor_shows_nurbs_form_and_keeps_config(fake_fg, tmp_path, monkeypatch):
+    from fg_gui import config_form as cf
+
+    monkeypatch.setenv("FG_GUI_DATA_DIR", str(tmp_path / "data"))
+    cfg = _cad_cfg("x.step", dimension="1D")
+    cfg["layers"] = [
+        {"type": "profile1d", "shape": "nurbs", "below": "foo", "above": "bar", "nurbs": cf.nurbs_default(1.0, 0.1)}
+    ]
+    before = json.dumps(cfg, sort_keys=True)
+    at = _cad_page(cfg)
+    at.switch_page(str(Path(APP).parent / "pages" / "editor.py"))
+    at.run()
+    assert not at.exception, at.exception
+    assert any(n.label == "Grad" for n in at.number_input)
+    assert json.dumps(at.session_state["fg_cfg"], sort_keys=True) == before  # Öffnen verändert nichts
+    shapes = next(b for b in at.selectbox if b.label == "Form")
+    assert "nurbs" in shapes.options

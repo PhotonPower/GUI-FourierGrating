@@ -2,6 +2,21 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.15.0] – 2026-11-20
+
+### Hinzugefügt
+- **NURBS-Linie in 1D (G12, FourierGrating M24):** Schichttyp `profile1d` mit `shape: nurbs` im Editor, ohne STEP:
+  Material unten/oben, Kontrollpunkte als Tabelle (x, y, Gewicht), Grad, Knotenvektor (Knopf „Knoten neu erzeugen“:
+  gleichmäßig, geklemmt), optionale Tiefe (0 = Maximum der Kurve), Scheiben, Tschebyschow-Knoten, Faktorisierung.
+  Neue Schichten starten mit einer flachen Linie mit einer Beule. Hinweis bei falscher Knotenzahl. Das Schnittbild
+  zeichnet die Linie (auch mit Überhängen) und nimmt die Höhe aus der Kurve, wenn `depth_um` fehlt.
+- Der STEP-Import der einfachen Linie (0.14.0) bleibt als Alternative erhalten.
+- Tests: Hilfsfunktionen, Zeichnen, Editor (AppTest) und der echte Löser (Energiebilanz mit Beispiel und Startwert).
+
+### Hinweis
+- Das Feature steckt in FourierGrating `main` (PR #32), noch ohne neues Versions-Tag (weiter 0.20.0); die GUI braucht
+  einen Stand mit M24 (`pip install` aus `main`). Ältere Kerne melden die Form `nurbs` als Fehler.
+
 ## [0.14.0] – 2026-11-19
 
 ### Hinzugefügt

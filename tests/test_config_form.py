@@ -170,3 +170,29 @@ def test_shapes_add_change_form_and_bad_points():
     assert layer["inclusions"][1]["rectangle_um"] == {"center": [0.5, 0.5], "size": [0.2, 0.1]}
     with pytest.raises(cf.FormError):
         cf.parse_points("0 0; 1")
+
+
+# ---------------------------------------------------------------- profile1d "nurbs" (FourierGrating M24)
+def test_clamped_knots_have_expected_length_and_multiplicity():
+    k = cf.clamped_knots(5, 2)
+    assert k == [0, 0, 0, 1, 2, 3, 3, 3] and len(k) == 5 + 2 + 1
+    with pytest.raises(cf.FormError):
+        cf.clamped_knots(2, 3)
+
+
+def test_nurbs_default_is_periodic_and_consistent():
+    nb = cf.nurbs_default(0.4, 0.1)
+    pts = nb["points_um"]
+    assert pts[-1][0] - pts[0][0] == pytest.approx(0.4) and pts[-1][1] == pts[0][1]
+    assert len(nb["knots"]) == len(pts) + nb["degree"] + 1
+
+
+def test_nurbs_rows_apply_roundtrip_and_weights():
+    nb = cf.nurbs_default(1.0)
+    rows = cf.nurbs_rows(nb)
+    cf.nurbs_apply(nb, rows)
+    assert "weights" not in nb  # alle Gewichte 1: Schlüssel bleibt weg
+    rows[2]["Gewicht"] = 0.8
+    rows.append({"x_um": None, "y_um": None, "Gewicht": None})  # leere Zeile
+    cf.nurbs_apply(nb, rows)
+    assert nb["weights"] == [1.0, 1.0, 0.8, 1.0, 1.0] and len(nb["points_um"]) == 5

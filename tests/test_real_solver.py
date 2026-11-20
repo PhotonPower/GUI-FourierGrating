@@ -455,3 +455,27 @@ def test_cad_1d_line_scaled_to_period(tmp_path):
     res = solver.solve({**cfg, "incidence": {**cfg["incidence"], "lambda_um": 0.5}})
     tot = results.totals(res)
     assert tot["ΣR"] + tot["ΣT"] + tot["Absorption"] == pytest.approx(1.0, abs=1e-6)
+
+
+@pytest.mark.solver
+def test_profile1d_nurbs_solves_with_energy_balance():
+    """Neue 1D-Linie (FourierGrating M24, ``profile1d`` mit ``shape: nurbs``) ohne STEP."""
+    cfg = json.loads((Path(__file__).parent / "data" / "profile1d_nurbs_1d.json").read_text())
+    cfg["incidence"]["lambda_um"] = 0.5
+    cfg["truncation"]["Nx"] = 6
+    tot = results.totals(solver.solve(cfg))
+    assert tot["ΣR"] + tot["ΣT"] + tot["Absorption"] == pytest.approx(1.0, abs=1e-6)
+
+
+@pytest.mark.solver
+def test_profile1d_nurbs_default_layer_is_accepted_by_the_core():
+    from fg_gui import config_form as cf
+
+    cfg = json.loads((Path(__file__).parent / "data" / "profile1d_nurbs_1d.json").read_text())
+    cfg["layers"] = [
+        {"type": "profile1d", "shape": "nurbs", "below": "resist", "above": "air", "nurbs": cf.nurbs_default(0.3, 0.1)}
+    ]
+    cfg["incidence"]["lambda_um"] = 0.5
+    cfg["truncation"]["Nx"] = 6
+    tot = results.totals(solver.solve(cfg))
+    assert tot["ΣR"] + tot["ΣT"] + tot["Absorption"] == pytest.approx(1.0, abs=1e-6)

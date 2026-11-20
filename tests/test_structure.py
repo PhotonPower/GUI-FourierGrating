@@ -200,3 +200,20 @@ def test_figure_with_cad_bands_draws_labels():
     assert sum("sectioned" in t for t in texts) == 1 and sum("extrusion" in t for t in texts) == 1  # nur 1. Periode
     assert any("Gesamtdicke der Schichten 0.36" in fig.axes[0].get_title() for _ in [0])
     assert any("angenommen" in t.get_text() for t in st.figure_xy(cad_cfg()).axes[0].texts)  # ohne Bericht
+
+
+def test_nurbs_profile_height_and_figure():
+    layer = {"type": "profile1d", "shape": "nurbs", "below": "si", "above": "air", "nurbs": cf.nurbs_default(0.3, 0.1)}
+    # Maximum der abgetasteten B-Spline-Kurve (quadratisch, 3/4 der Beule), nicht der Kontrollpunkte
+    assert st.layer_height(layer) == pytest.approx(0.075, abs=1e-3)
+    assert st.layer_height({**layer, "depth_um": 0.2}) == 0.2
+    cfg = {
+        "dimension": "1D",
+        "period_um": {"x": 0.3},
+        "materials": {"si": {"n": 3.5}, "air": {"n": 1.0}},
+        "substrate": "si",
+        "superstrate": "air",
+        "layers": [layer],
+    }
+    assert st.figure_xy(cfg, periods=2) is not None
+    assert any(row for row in st.describe(cfg))

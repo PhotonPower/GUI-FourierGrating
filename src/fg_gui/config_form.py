@@ -29,8 +29,9 @@ MATERIAL_KINDS = {
     "drude_lorentz": "Drude–Lorentz",
 }
 DISPERSIVE_KINDS = ("table_n", "table_eps", "sellmeier", "cauchy", "drude_lorentz")
-PROFILE_SHAPES = ("sinus", "triangle", "points")
+PROFILE_SHAPES = ("sinus", "triangle", "points", "nurbs")  # nurbs: nur 1D, FourierGrating M24
 PROFILE2D_SHAPES = ("egg_crate", "sinus_x")
+NURBS_FACTORIZATIONS = ("auto", "laurent", "FFF_iso", "FFF_sym", "FFF_B")
 POLYGON_FACTORIZATIONS = ("auto", "FFF_sym", "FFF_iso", "FFF_B", "laurent")
 PROFILE_FACTORIZATIONS = ("auto", "laurent", "li_lamellar", "FFF_iso", "FFF_sym", "FFF_rig", "FFF_A", "FFF_B")
 
@@ -243,6 +244,52 @@ def new_layer(kind: str, materials: list[str], period_x: float = 1.0, period_z: 
     if kind == "profile1d":
         return {"type": "profile1d", "shape": "sinus", "depth_um": 0.1, "below": first, "above": second}
     raise FormError(f"Kein Formular für Schichttyp „{kind}“")
+
+
+def clamped_knots(n_points: int, degree: int) -> list[float]:
+    """Gleichmäßiger, geklemmter Knotenvektor (Länge Punkte + Grad + 1) für ``nurbs`` – nur Eingabehilfe."""
+    if degree < 1 or n_points < degree + 1:
+        raise FormError(f"Grad {degree} braucht mindestens {degree + 1} Kontrollpunkte.")
+    inner = list(range(1, n_points - degree))
+    return [0.0] * (degree + 1) + [float(v) for v in inner] + [float(n_points - degree)] * (degree + 1)
+
+
+def nurbs_default(period_x: float, depth: float = 0.1) -> dict:
+    """Startwert für ``profile1d`` mit ``shape: nurbs``: flache Linie mit einer Beule über die Periode."""
+    pts = [[0.0, 0.0], [0.25 * period_x, 0.0], [0.5 * period_x, depth], [0.75 * period_x, 0.0], [period_x, 0.0]]
+    return {"degree": 2, "knots": clamped_knots(len(pts), 2), "points_um": pts}
+
+
+NURBS_COLUMNS = ("x_um", "y_um", "Gewicht")
+
+
+def nurbs_rows(nurbs: dict) -> list[dict]:
+    pts = nurbs.get("points_um") if isinstance(nurbs.get("points_um"), list) else []
+    w = nurbs.get("weights") if isinstance(nurbs.get("weights"), list) else []
+    return [
+        {"x_um": float(p[0]), "y_um": float(p[1]), "Gewicht": float(w[i]) if i < len(w) else 1.0}
+        for i, p in enumerate(pts)
+        if isinstance(p, list | tuple) and len(p) == 2
+    ]
+
+
+def nurbs_apply(nurbs: dict, rows: list[dict]) -> None:
+    """Schreibt die Tabelle zurück; ``weights`` entfällt, wenn alle Gewichte 1 sind; leere Zeilen entfallen."""
+    pts, weights = [], []
+    for r in rows:
+        x, y = r.get("x_um"), r.get("y_um")
+        if x is None or y is None or x != x or y != y:  # leer oder NaN
+            continue
+        w = r.get("Gewicht")
+        pts.append([float(x), float(y)])
+        weights.append(1.0 if w is None or w != w else float(w))
+    if pts != nurbs.get("points_um"):
+        nurbs["points_um"] = pts
+    if any(w != 1.0 for w in weights):
+        if weights != nurbs.get("weights"):
+            nurbs["weights"] = weights
+    else:
+        nurbs.pop("weights", None)
 
 
 def shape_defaults(shape: str) -> dict:
