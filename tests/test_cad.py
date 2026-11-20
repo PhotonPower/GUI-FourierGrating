@@ -194,3 +194,10 @@ def test_line_layer_maps_below_to_body_and_above_to_background():
     assert layer["bodies"] == [{"name": "Line", "material": "si"}]
     assert layer["background"] == "air" and layer["unit"] == "um" and layer["type"] == "cad"
     assert cad.line_layer({"name": ""}, "/x.step", "si", "air")["bodies"][0]["index"] == 0
+
+
+def test_line_info_explains_open_surface_models():
+    sheet = "ISO-10303-21;\n#1=SHELL_BASED_SURFACE_MODEL('',(#2));\n#2=OPEN_SHELL('',(#3));\n"
+    assert cad.body_names(sheet) == [""]  # FourierGrating liest das Flächenmodell als Körper
+    with pytest.raises(cad.CadFileError, match="offenes Flächenmodell"):
+        cad.line_info(sheet, 0.3)

@@ -60,8 +60,13 @@ def looks_like_step(data: bytes | str) -> bool:
 
 
 def body_names(step_text: str) -> list[str]:
-    """Namen der Volumenkörper in Dateireihenfolge (``MANIFOLD_SOLID_BREP('Name',…)``); leer = Positionsnummer."""
-    return [m.group(1) for m in re.finditer(r"MANIFOLD_SOLID_BREP\s*\(\s*'([^']*)'", step_text)]
+    """Namen der Körper in Dateireihenfolge; leer = Positionsnummer.
+
+    Volumenkörper (``MANIFOLD_SOLID_BREP``) und Flächenmodelle (``SHELL_BASED_SURFACE_MODEL``, etwa eine in z
+    extrudierte Linie aus Nurbforge); beides liest FourierGrating als Körper (Flächenmodelle melden ``SHELL_OPEN``).
+    """
+    pattern = r"(?:MANIFOLD_SOLID_BREP|SHELL_BASED_SURFACE_MODEL)\s*\(\s*'([^']*)'"
+    return [m.group(1) for m in re.finditer(pattern, step_text)]
 
 
 # ---------------------------------------------------------------- einfache Linie (1D): STEP skalieren
@@ -115,6 +120,12 @@ def line_info(step_text: str, period_um: float) -> dict:
     Breite = Ausdehnung in CAD x, Höhe = Ausdehnung in CAD z (Achsen ``y = +Z``, ``x = +X``, wie in ``new_layer``).
     """
     names = body_names(step_text)
+    if "OPEN_SHELL" in step_text and "MANIFOLD_SOLID_BREP" not in step_text:
+        raise CadFileError(
+            "Die Datei enthält ein offenes Flächenmodell (OPEN_SHELL), keinen geschlossenen Volumenkörper: "
+            "FourierGrating meldet dafür SHELL_OPEN. Die Linie als Fläche unter der Kurve (geschlossener Körper) "
+            "exportieren – oder die Linie als NURBS-Schicht (profile1d, Form nurbs) eingeben."
+        )
     if len(names) != 1:
         raise CadFileError(f"Die Datei muss genau einen Körper enthalten (gefunden: {len(names)}).")
     lo, hi = step_extent(step_text)
