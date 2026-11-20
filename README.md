@@ -19,7 +19,9 @@ dessen Python-API (`fouriergrating`) auf. Rechnungen laufen im Hintergrund, die 
 >   Logging, automatisches Aufräumen, Health-Check `fg-gui-health`.
 > * Tests laufen ohne installiertes FourierGrating; Server-Installation mit systemd und nginx.
 >
-> Voraussetzung: FourierGrating ab **0.20.0** (dispersive Materialien M22, CAD für 1D-Gitter M23).
+> Voraussetzung: FourierGrating ab **0.20.0** (dispersive Materialien M22, CAD für 1D-Gitter M23). Für die
+> NURBS-Linie im Editor (`profile1d`, Form `nurbs`, M24) ist ein Stand von `main` nötig (PR #32, noch ohne neues Tag;
+> ältere Kerne lehnen die Form ab).
 >
 > Roadmap: [`docs/roadmap.md`](docs/roadmap.md).
 
@@ -63,6 +65,7 @@ src/fg_gui/          Python-Paket
   results.py         Ergebnisobjekte -> Tabellen
   export.py, h5export.py   Download fertiger Rechnungen (ZIP, HDF5)
   structure.py       Schnittbild der Struktur mit Maßen (nur Darstellung)
+  cad.py, step_profile.py   CAD-Dateien, STEP-Linie skalieren bzw. als NURBS lesen (nur Dateiverarbeitung)
   settings.py        Einstellungen aus FG_GUI_*-Variablen
   state.py           geteilte Ressourcen (st.cache_resource), Sitzungszustand
 tests/               pytest, inkl. Seiten-Rauchtests (streamlit.testing), Ersatzmodul für fouriergrating

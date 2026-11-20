@@ -32,7 +32,7 @@ Browser ──HTTPS──> nginx (TLS, Anmeldung) ──WebSocket──> Streaml
 | `dispersion.py`, `material_forms.py` | dispersive Materialien: Modelle erkennen, Tabellen/CSV, `file` → `data`; Formulare, Import, Vorschau | teils |
 | `structure.py` | Schnittbild x–y und Draufsicht x–z mit Maßen aus der Konfiguration (nur Darstellung, abgetastete Formen) | nein |
 | `export.py`, `h5export.py` | Download fertiger Rechnungen als ZIP bzw. HDF5 (`h5py`) | nein |
-| `cad.py`, `optimize.py` | CAD-Dateien (Dateiwächter), Zielfunktion/Parameter/Verlauf der Optimierung | nein |
+| `cad.py`, `step_profile.py`, `optimize.py` | CAD-Dateien (Dateiwächter, Skalieren der STEP-Linie), Profilkurve eines STEP-Flächenmodells als NURBS, Zielfunktion/Parameter/Verlauf der Optimierung | nein |
 | `store.py` | Rechnungen auf der Festplatte (`FG_GUI_DATA_DIR/runs`) | nein |
 | `users.py`, `logs.py`, `housekeeping.py`, `health.py` | Proxy-Benutzer, Logging, Aufräumen, Health-Check (`fg-gui-health`) | nein |
 | `system.py` | `nvidia-smi` abfragen | nein |

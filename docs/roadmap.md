@@ -68,15 +68,21 @@ Reihenfolge wie aufgeführt (AGENTS.md).
   - Abnahme: HDF5 lesbar für alle Arten (Test mit `h5py`); Linien identisch zu Zeile/Spalte der Karte; alle Beispiele
     von FourierGrating lassen sich zeichnen; mit `-m solver`: gerechnete Linie (1D und 2D) gleich der Karten-Zeile
 - [x] **G10** CAD in 1D-Gittern (FourierGrating M23, ab 0.20.0) (0.13.0)
-- [x] **G11** Einfache Linie aus STEP im Editor (1D): auf die Periode skaliert, Material unter/über der Linie (0.14.0)
-- [x] **G12** NURBS-Linie in 1D: Schichttyp `profile1d` mit `shape: nurbs` im Editor (FourierGrating M24) (0.15.0)
-- [x] **G13** STEP-Flächenmodell (offene extrudierte Linie, z. B. Nurbforge) als NURBS-Schicht importieren (0.16.0)
   - Seite *CAD*: Hinweis auf z-invariante Körper, Zellursprung nur x₀, `z_cut_um` optional, keine Schnitthöhen, Normalenfeld
     nur Raster; Bänder mit Längenanteilen, eine Vorschau (Profil in (x, y)); `NOT_Z_INVARIANT` erklärt; Warnung bei
     `z_cut_um` in 2D
   - Reiter *Struktur*: Bänder und Profil in 1D wie in 2D
   - Abnahme: AppTest mit Ersatzmodul; mit `-m solver`: `cad_line_grating_1d.json` (Kopie in `tests/data/`) prüft und rechnet
     (Energiebilanz), `z_cut_um` außerhalb → `OUT_OF_RANGE`, Säulen als 1D → `NOT_Z_INVARIANT`
+- [x] **G11** Einfache Linie aus STEP im Editor (1D): auf die Periode skaliert, Material unter/über der Linie (0.14.0)
+  - STEP-Datei mit genau einem Körper (Fläche unter der Linie), Breite auf die Periode skaliert (`cad.scale_step`),
+    Material unten = Körper, oben = Hintergrund; als Menüpunkt „cad: Linie aus STEP-Datei“ in „Neue Schicht“
+- [x] **G12** NURBS-Linie in 1D: Schichttyp `profile1d` mit `shape: nurbs` im Editor (FourierGrating M24) (0.15.0)
+  - Formular für `profile1d` mit `shape: nurbs` (Kontrollpunkt-Tabelle, Grad, Knoten, Tiefe), Schnittbild zeichnet
+    die Linie; Abnahme: AppTest, mit `-m solver` rechnet das Beispiel und der Startwert (Energiebilanz)
+- [x] **G13** STEP-Flächenmodell (offene extrudierte Linie, z. B. Nurbforge) als NURBS-Schicht importieren (0.16.0)
+  - STEP-Flächenmodell (offene extrudierte Linie, `SHELL_OPEN` im CAD-Weg) wird in `step_profile.py` zu einer
+    NURBS-Kurve; Abnahme: Kette, Skalierung, Gradanhebung (Tests), mit `-m solver` rechnet die Nurbforge-Datei
 
 ## Anforderungen an FourierGrating
 
@@ -92,6 +98,9 @@ Was der GUI fehlt, wird dort ergänzt (AGENTS.md, Abschnitt 1), nicht hier nachg
   `cad/line_grating.step`. Nicht z-invariante Körper wie die Säulen von `cad_pillar_array.json` meldet `cad.check`
   sofort als `NOT_Z_INVARIANT`. Das beobachtete endlose Rechnen betraf 0.19.0, die noch keinen 1D-Pfad hatte. Die
   Freigabe in der GUI ist erledigt (G10, 0.13.0).
+- NURBS-Linie in 1D (FourierGrating M24, `profile1d` mit `shape: nurbs`): **auf `main` (PR #32), noch nicht getaggt**
+  (Tag weiter v0.20.0). Die GUI hat dafür ein Formular (G12) und einen STEP-Import (G13); sobald ein Tag mit M24
+  existiert, `solver.MIN_VERSION` anheben und die Versionsangaben in README und `docs/deployment_rtx6000.md` anpassen.
 - Fehlermeldungen mit Feldpfad (JSON-Pointer, z. B. `/layers/1/materials/1`) in `FourierGratingError`, damit der
   Editor Fehler am Feld anzeigen kann. Heute enthalten sie nur Quelltextposition und Text (`unknown material 'x'`);
   `config_form.locate_error` rät über Stichwörter. Negative Schichtdicken werden nicht abgelehnt.
