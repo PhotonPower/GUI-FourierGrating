@@ -83,6 +83,12 @@ offene, periodische Linie über eine Periode; darunter liegt „Material unten�
 Überhänge sind erlaubt, Selbstschnitte nicht. Verstößt die Linie dagegen, meldet FourierGrating `NURBS_…` mit dem
 JSON-Pointer. Ohne `depth_um` gilt das Maximum der Kurve.
 
+**Linie aus STEP-Flächenmodell (1D).** Dasselbe Menü („cad: Linie aus STEP-Datei“) erkennt ein **offenes
+Flächenmodell** (die Linie in z extrudiert, z. B. aus Nurbforge) und macht daraus eine NURBS-Schicht (`profile1d`, Form
+`nurbs`): Die GUI liest die B-Spline-Kanten des Profils (Ebene CAD x, z), setzt sie zu einer NURBS-Kurve zusammen und
+skaliert die Breite auf die Periode. Material unten und oben wählen Sie wie bei der Linie; danach direkt rechnen.
+Nur B-Spline-Kanten werden gelesen, das Profil muss eine offene Kette mit gleicher Höhe an beiden Enden sein.
+
 **Einfache Linie aus STEP im Editor (1D).** Reiter *Schichten* → Menü „Neue Schicht“ → „cad: Linie aus STEP-Datei“ (nur 1D): STEP-Datei mit genau einem
 Körper hochladen, der die ganze Periode ausfüllt (Fläche unter der Linie, entlang z extrudiert, Proportionen wie
 gewünscht). Die GUI skaliert die Datei so, dass die Breite (CAD x) der Periode Λ entspricht, und zeigt die sich

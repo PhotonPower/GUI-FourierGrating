@@ -114,13 +114,18 @@ def scale_step(step_text: str, factor: float) -> str:
     return _RADII.sub(radii, _POINT.sub(point, step_text))
 
 
+def is_surface_model(step_text: str) -> bool:
+    """Offenes Flächenmodell ohne Volumenkörper (etwa eine in z extrudierte Linie aus Nurbforge)."""
+    return "OPEN_SHELL" in step_text and "MANIFOLD_SOLID_BREP" not in step_text
+
+
 def line_info(step_text: str, period_um: float) -> dict:
     """Maße einer einfachen Linie: Breite und Höhe in der Datei, Maßstab auf die Periode und Höhe danach (µm).
 
     Breite = Ausdehnung in CAD x, Höhe = Ausdehnung in CAD z (Achsen ``y = +Z``, ``x = +X``, wie in ``new_layer``).
     """
     names = body_names(step_text)
-    if "OPEN_SHELL" in step_text and "MANIFOLD_SOLID_BREP" not in step_text:
+    if is_surface_model(step_text):
         raise CadFileError(
             "Die Datei enthält ein offenes Flächenmodell (OPEN_SHELL), keinen geschlossenen Volumenkörper: "
             "FourierGrating meldet dafür SHELL_OPEN. Die Linie als Fläche unter der Kurve (geschlossener Körper) "

@@ -479,3 +479,18 @@ def test_profile1d_nurbs_default_layer_is_accepted_by_the_core():
     cfg["truncation"]["Nx"] = 6
     tot = results.totals(solver.solve(cfg))
     assert tot["ΣR"] + tot["ΣT"] + tot["Absorption"] == pytest.approx(1.0, abs=1e-6)
+
+
+@pytest.mark.solver
+def test_profile1d_nurbs_from_step_surface_model_solves():
+    """STEP-Flächenmodell (Nurbforge, offen) -> NURBS-Schicht; der Kern rechnet sie mit Energiebilanz."""
+    from fg_gui import step_profile
+
+    text = (Path(__file__).parent / "data" / "cad" / "grating_line_surface.step").read_text()
+    cfg = json.loads((Path(__file__).parent / "data" / "profile1d_nurbs_1d.json").read_text())
+    nurbs, info = step_profile.nurbs_profile(text, cfg["period_um"]["x"])
+    cfg["layers"] = [{"type": "profile1d", "shape": "nurbs", "below": "resist", "above": "air", "nurbs": nurbs}]
+    cfg["incidence"]["lambda_um"] = 0.5
+    cfg["truncation"]["Nx"] = 6
+    tot = results.totals(solver.solve(cfg))
+    assert tot["ΣR"] + tot["ΣT"] + tot["Absorption"] == pytest.approx(1.0, abs=1e-6)

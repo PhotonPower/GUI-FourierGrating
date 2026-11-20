@@ -6,7 +6,7 @@ import json
 import pandas as pd
 import streamlit as st
 
-from fg_gui import cad, config_io, dispersion, material_forms, nearfield, results, solver, structure
+from fg_gui import cad, config_io, dispersion, material_forms, nearfield, results, solver, step_profile, structure
 from fg_gui import config_form as cf
 from fg_gui.cad import CadFileError
 from fg_gui.jobs import DONE, FAILED
@@ -414,9 +414,10 @@ with tab_layers:
             st.rerun()
     else:
         st.caption(
-            "Die Datei enthält genau einen Körper mit den richtigen Proportionen: ein Profil, das die ganze "
-            "Periode in x ausfüllt und nach unten bis zum Schichtanfang reicht (Fläche unter der Linie), entlang "
-            "z extrudiert. Die Breite wird auf die Periode Λ skaliert, die Höhe folgt aus den Proportionen. "
+            "Zwei Arten von Dateien: ein **Flächenmodell** (offen, Linie in z extrudiert, etwa aus Nurbforge) wird "
+            "zu einer NURBS-Schicht (`profile1d`); ein **Volumenkörper** (genau ein Körper, Fläche unter der Linie "
+            "über die ganze Periode) zu einer CAD-Schicht. Die Breite wird auf die Periode Λ skaliert, die Höhe folgt "
+            "aus den Proportionen. "
             "Achsen: x = CAD X, y = CAD Z. Mehrere Körper, Toleranzen und Einstellungen: Seite *CAD*. "
             "Die Schicht lässt sich beliebig oft hinzufügen."
         )
@@ -428,25 +429,47 @@ with tab_layers:
         above = c[1].selectbox("Material oberhalb der Linie", mat_names, index=sup_i, key=_k("lineabove"))
         if up is not None:
             text = up.getvalue().decode("utf-8", errors="replace")
+            surface = False
             try:
                 if not cad.looks_like_step(text):
                     raise CadFileError("Das ist keine STEP-Datei (sie beginnt nicht mit „ISO-10303-21“).")
-                info = cad.line_info(text, float(per.get("x") or 0.0))
-            except CadFileError as e:
+                surface = cad.is_surface_model(text)
+                if surface:
+                    nurbs, info = step_profile.nurbs_profile(text, float(per.get("x") or 0.0))
+                else:
+                    info = cad.line_info(text, float(per.get("x") or 0.0))
+            except (CadFileError, step_profile.StepProfileError) as e:
                 st.error(str(e))
             else:
-                st.write(
-                    f"Körper „{info['name'] or '#0'}“: Breite {info['width']:.6g} × Höhe {info['height']:.6g} "
-                    f"(Einheit der Datei). Skaliert auf Λ = {float(per['x']):.6g} µm: "
-                    f"**Höhe {info['height_um']:.6g} µm** (Faktor {info['scale']:.6g})."
-                )
-                if st.button("Als CAD-Schicht hinzufügen", disabled=not (below and above), key=_k("lineadd")):
-                    path = cad.save_upload(cad.scale_step(text, info["scale"]).encode(), uploads_dir())
-                    layers.append(cad.line_layer(info, str(path), below, above))
-                    cfg["layers"] = layers
-                    _bump()
-                    st.rerun()
-        st.caption("Danach auf der Seite *CAD* „Prüfen“ – dort stehen Bänder und Vorschau.")
+                if surface:
+                    st.write(
+                        f"Flächenmodell mit {info['pieces']} Kurvenstücken (Grad {info['degree']}): Breite "
+                        f"{info['width']:.6g} × Höhe {info['height']:.6g} (Einheit der Datei). Skaliert auf "
+                        f"Λ = {float(per['x']):.6g} µm: **Höhe {info['height_um']:.6g} µm** (Faktor "
+                        f"{info['scale']:.6g}). Die Linie wird eine NURBS-Schicht (`profile1d`, Form `nurbs`)."
+                    )
+                    if st.button("Als NURBS-Schicht hinzufügen", disabled=not (below and above), key=_k("lineadd")):
+                        layers.append(
+                            {"type": "profile1d", "shape": "nurbs", "below": below, "above": above, "nurbs": nurbs}
+                        )
+                        cfg["layers"] = layers
+                        _bump()
+                        st.rerun()
+                else:
+                    st.write(
+                        f"Körper „{info['name'] or '#0'}“: Breite {info['width']:.6g} × Höhe {info['height']:.6g} "
+                        f"(Einheit der Datei). Skaliert auf Λ = {float(per['x']):.6g} µm: "
+                        f"**Höhe {info['height_um']:.6g} µm** (Faktor {info['scale']:.6g})."
+                    )
+                    if st.button("Als CAD-Schicht hinzufügen", disabled=not (below and above), key=_k("lineadd")):
+                        path = cad.save_upload(cad.scale_step(text, info["scale"]).encode(), uploads_dir())
+                        layers.append(cad.line_layer(info, str(path), below, above))
+                        cfg["layers"] = layers
+                        _bump()
+                        st.rerun()
+        st.caption(
+            "Volumenkörper: danach auf der Seite *CAD* „Prüfen“ (Bänder, Vorschau). NURBS-Linie: gleich rechnen."
+        )
 
 with tab_struct:
     st.caption(

@@ -2,6 +2,22 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach SemVer.
 
+## [0.16.0] – 2026-11-20
+
+### Hinzugefügt
+- **STEP-Flächenmodell als NURBS-Schicht (G13):** Menü „Neue Schicht“ → „cad: Linie aus STEP-Datei“ liest jetzt auch
+  offene Flächenmodelle (`SHELL_BASED_SURFACE_MODEL` mit `OPEN_SHELL`, die in z extrudierte Linie aus Nurbforge), die
+  FourierGrating als CAD-Körper mit `SHELL_OPEN` ablehnt. Neues Modul `step_profile`: die B-Spline-Kanten des Profils
+  (Ebene CAD x, z) werden zu einer Kette verbunden, in rationale Bézier-Stücke zerlegt, auf einen gemeinsamen Grad
+  gebracht und zu einer NURBS-Kurve zusammengesetzt; Breite = Periode, Höhe aus den Proportionen. Ergebnis ist eine
+  Schicht `profile1d` mit `shape: nurbs` (Material unten/oben wählbar). Volumenkörper gehen weiter als CAD-Schicht.
+- Tests: Kette, Skalierung, Gradanhebung, Knoteneinfügen; echter Löser (Energiebilanz mit der Nurbforge-Datei,
+  Kopie in `tests/data/cad/grating_line_surface.step`).
+
+### Behoben
+- Die Namenssuche der STEP-Körper kennt jetzt auch Flächenmodelle (vorher „gefunden: 0“); die Fehlermeldung für ein
+  Flächenmodell im Volumenkörper-Weg nennt `SHELL_OPEN` und die Auswege.
+
 ## [0.15.0] – 2026-11-20
 
 ### Hinzugefügt
